@@ -1,0 +1,67 @@
+READ ME
+
+This project uses two precomputed lookup tables
+song_lookup.jso: a dictionary that stores song metadata
+neighbor_lookup.json: a dictionary that stores nearest neighbors (recommendations)
+
+These files are generated offline by knn.py and loaded by the application for fast lookup.
+
+1. song_lookup.json
+Maps each track_id to its corresponding song information.
+This is used to display human-readable results (name, artist, genre).
+
+Format)
+{
+  "track_id_1": {
+    "track_name": "Song Title",
+    "artists": "Artist Name(s)",
+    "track_genre": "genre"
+  },
+  "track_id_2": {
+    "track_name": "Another Song",
+    "artists": "Another Artist",
+    "track_genre": "pop"
+}
+
+2. neighbor_lookup.json
+Stores the ids of the top k most similar songs for each track.
+
+Format)
+{
+  "track_id_1": [
+    {
+      "track_id": "track_id_2",
+      "score": 0.982134
+    },
+    {
+      "track_id": "track_id_3",
+      "score": 0.978221
+    }
+  ],
+
+  "track_id_2": [
+    {
+      "track_id": "track_id_5",
+      "score": 0.991002
+    }
+  ]
+}
+
+To get recommendations)
+Find the track_id of the selected song
+Look up its neighbors in neighbor_lookup.json
+Use song_lookup.json to convert neighbor track_ids into displayable info
+
+Example)
+track_id = "track_id_1"
+neighbors = neighbor_lookup[track_id]
+
+results = []
+for n in neighbors:
+    nid = n["track_id"]
+    results.append({
+        "track_name": song_lookup[nid]["track_name"],
+        "artists": song_lookup[nid]["artists"],
+        "genre": song_lookup[nid]["track_genre"],
+        "score": n["score"]
+    })

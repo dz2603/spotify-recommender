@@ -1,7 +1,7 @@
 import json
 import numpy as np
 from sklearn.preprocessing import normalize
-from datapreprocessing import build_weighted_feature_matrix
+from data_preprocessing.datapreprocessing import build_weighted_feature_matrix
 
 TOP_K = 10
 BATCH_SIZE = 500  

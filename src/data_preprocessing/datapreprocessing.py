@@ -1,9 +1,16 @@
+import os
 import numpy as np
 import pandas as pd
 
 from sklearn.preprocessing import StandardScaler
 from scipy.sparse import hstack, csr_matrix
 from sklearn.preprocessing import StandardScaler, MultiLabelBinarizer
+
+# Default CSV path — resolved relative to this file so it works from any cwd
+_DEFAULT_CSV = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "..", "..", "data", "dataset.csv"
+)
 
 def split_and_clean_artists(series):
     values = set()
@@ -17,12 +24,14 @@ def split_and_clean_artists(series):
 # Function to build our feature matrix with weighted features
 # Weights can be adjusted according to user input
 def build_weighted_feature_matrix(
-    csv_path="dataset.csv",
+    csv_path=None,
     base_weight=1.0,
     explicit_weight=0.5,
     genre_weight=1.5,
     artist_weight=1.25
 ):
+    if csv_path is None:
+        csv_path = _DEFAULT_CSV
     data = pd.read_csv(csv_path)
     data = data.dropna()
 

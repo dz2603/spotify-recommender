@@ -1,10 +1,11 @@
 """
 Spotify Recommender — Streamlit App
-Four pages:
-  1. 🎵 Song Recommendation  (KNN from scratch, cosine / euclidean)
-  2. 📊 Clustering            (K-Means vs GMM, K slider, metrics)
-  3. 🔍 Dim. Reduction        (PCA vs Autoencoder, 2D scatter)
-  4. ⚙️  Parameter Explorer   (compare recommendation quality across settings)
+Five pages:
+  1. 🎵 Song Recommendation  (KNN with cosine/euclidean options)
+  2. 📊 Clustering           (K-Means vs GMM with quality metrics)
+  3. 🔍 Dimensionality Reduction (PCA vs Autoencoder, 2D view)
+  4. ⚙️ Parameter Explorer   (compare recommendation quality across settings)
+  5. 🗂️ Dataset Info         (basic dataset stats and preview)
 """
 import sys
 import os
@@ -43,6 +44,7 @@ PAGES = [
     "📊 Clustering",
     "🔍 Dimensionality Reduction",
     "⚙️ Parameter Explorer",
+    "🗂️ Dataset Info",
 ]
 
 with st.sidebar:
@@ -110,6 +112,7 @@ def page_recommendation():
     )
 
     song_lookup, neighbor_lookup, tables_ok = load_lookup_tables()
+    precomputed_k = len(next(iter(neighbor_lookup.values()), [])) if tables_ok else 0
 
     col1, col2 = st.columns([2, 1])
     with col1:
@@ -137,7 +140,13 @@ def page_recommendation():
         return
 
     # --- Strategy A: pre-computed lookup (full feature set, cosine only) ---
-    if feature_set.startswith("full") and metric == "cosine" and tables_ok:
+    use_precomputed_lookup = (
+        feature_set.startswith("full")
+        and metric == "cosine"
+        and tables_ok
+        and k <= precomputed_k
+    )
+    if use_precomputed_lookup:
         # find matching track ids
         matches = [
             (tid, info)
@@ -181,10 +190,6 @@ def page_recommendation():
 
     # --- Strategy B: from-scratch KNN on numeric features (or euclidean) ---
     else:
-        st.info(
-            "Running **KNN from scratch** on numeric audio features "
-            f"with **{metric}** distance…"
-        )
 
         data, X_num, feat_cols, _ = load_data(sample_n=None)
         name_col = data["track_name"].str.lower()
@@ -669,6 +674,45 @@ def page_parameter_explorer():
                 )
 
 
+def page_dataset_info():
+    st.header("🗂️ Dataset Information")
+    st.markdown("Quick overview of the dataset used across all app pages.")
+
+    data, X_num, feat_cols, _ = load_data(sample_n=None)
+
+    n_rows, n_cols = data.shape
+    n_numeric = len(data.select_dtypes(include=[np.number]).columns)
+    n_non_numeric = n_cols - n_numeric
+    n_missing = int(data.isna().sum().sum())
+
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Rows", f"{n_rows:,}")
+    m2.metric("Columns", f"{n_cols:,}")
+    m3.metric("Missing Values", f"{n_missing:,}")
+    m4.metric("Numeric Features", f"{n_numeric:,}")
+
+    st.markdown("---")
+    st.subheader("Column Summary")
+    summary_df = pd.DataFrame({
+        "Column": data.columns,
+        "Dtype": [str(dtype) for dtype in data.dtypes],
+        "Non-Null Count": [int(data[col].notna().sum()) for col in data.columns],
+        "Missing Count": [int(data[col].isna().sum()) for col in data.columns],
+    })
+    st.dataframe(summary_df, hide_index=True, use_container_width=True)
+
+    st.markdown("---")
+    st.subheader("Sample Rows")
+    st.dataframe(data.head(20), hide_index=True, use_container_width=True)
+
+    with st.expander("Feature Matrix Details"):
+        st.markdown(
+            f"- Standardized numeric matrix shape: **{X_num.shape[0]:,} x {X_num.shape[1]:,}**\n"
+            f"- Numeric feature count used in modeling: **{len(feat_cols):,}**\n"
+            f"- Non-numeric columns in raw data: **{n_non_numeric:,}**"
+        )
+
+
 # ============================================================
 # Router
 # ============================================================
@@ -680,3 +724,5 @@ elif page == PAGES[2]:
     page_dim_reduction()
 elif page == PAGES[3]:
     page_parameter_explorer()
+elif page == PAGES[4]:
+    page_dataset_info()

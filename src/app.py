@@ -358,7 +358,15 @@ def page_clustering():
             "**2. Suboptimal Hard Boundaries:** Because the data is one massive continuous 'blob', K-Means is forced to arbitrarily slice it. Songs on overlapping borders get penalized, heavily dragging down the Silhouette score.\n\n"
             "**3. Genre Fusion:** Modern music often blends multiple genres. A track might be mathematically 60% Hip-Hop and 40% Country. Purely numerical features also fail to capture deeper cultural and semantic context.\n\n"
             "**Conclusion:** Low clustering metrics here are not a bug, but a feature of audio data! It proves that categorizing a song into a single rigid box is mathematically unnatural. "
-            "This is exactly why GMM Soft Clustering (identifying mixed vibes) or KNN (finding local nearest neighbors point-by-point) are the true industry standards for modern music recommendation engines."
+            "This is exactly why GMM Soft Clustering (identifying mixed vibes) or KNN (finding local nearest neighbors point-by-point) are true industry standards for modern recommendation engines."
+        )
+
+        st.subheader("💡 How are the Cluster Labels Generated?")
+        st.info(
+            "Notice the labels like `C0 (High Energy, Low Acousticness)`? These are generated dynamically using **Centroid Analysis** in the original high-dimensional space (not PCA!):\n\n"
+            "**1. Standardization:** Our `StandardScaler` normalizes features so the global average of the Spotify dataset is 0. Positive means above average; negative means below average.\n\n"
+            "**2. Centroid Calculation:** For each cluster, we average the features of all its songs to find its multi-dimensional center (the centroid).\n\n"
+            "**3. Top 2 Extreme Traits:** We sort the centroid's values by absolute magnitude to find which features deviate the furthest from 0. If the top feature is `energy (+1.5)` and the second is `acousticness (-1.2)`, we automatically name it `High Energy, Low Acousticness`! This mathematically identifies the true acoustic DNA of the group."
         )
 
 

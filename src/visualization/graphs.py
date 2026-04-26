@@ -17,6 +17,7 @@ def scatter_2d(
     title: str = "2D Scatter",
     x_label: str = "Component 1",
     y_label: str = "Component 2",
+    cluster_names: dict = None,
 ) -> go.Figure:
     """Color-coded 2D scatter plot for cluster visualization."""
     n_clusters = len(np.unique(labels))
@@ -25,11 +26,12 @@ def scatter_2d(
     fig = go.Figure()
     for c in np.unique(labels):
         mask = labels == c
+        name = cluster_names[c] if cluster_names and c in cluster_names else f"Cluster {c}"
         fig.add_trace(go.Scatter(
             x=X_2d[mask, 0],
             y=X_2d[mask, 1],
             mode="markers",
-            name=f"Cluster {c}",
+            name=name,
             marker=dict(color=PALETTE[int(c) % len(PALETTE)], size=5, opacity=0.7),
             text=[hover_texts[i] for i in np.where(mask)[0]] if hover_texts else None,
             hoverinfo="text+name" if hover_texts else "x+y+name",
@@ -171,12 +173,12 @@ def loss_curve(loss_history: list[float]) -> go.Figure:
     return fig
 
 
-def soft_membership_heatmap(proba: np.ndarray, track_names: list[str]) -> go.Figure:
+def soft_membership_heatmap(proba: np.ndarray, track_names: list[str], cluster_names: dict = None) -> go.Figure:
     """GMM soft membership heatmap for a sample of songs."""
     k = proba.shape[1]
     fig = go.Figure(go.Heatmap(
         z=proba,
-        x=[f"Cluster {i}" for i in range(k)],
+        x=[cluster_names[i] if cluster_names and i in cluster_names else f"Cluster {i}" for i in range(k)],
         y=track_names,
         colorscale="Blues",
         colorbar=dict(title="Probability"),

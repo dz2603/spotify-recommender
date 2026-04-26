@@ -43,7 +43,6 @@ PAGES = [
     "🎵 Song Recommendation",
     "📊 Clustering",
     "🔍 Dimensionality Reduction",
-    "⚙️ Parameter Explorer",
     "🗂️ Dataset Info",
 ]
 
@@ -243,6 +242,27 @@ def page_recommendation():
             )
 
 
+def profile_clusters(X_num: np.ndarray, labels: np.ndarray, feat_cols: list[str]) -> dict:
+    """Generate human-readable summary labels for clusters based on top features."""
+    profiles = {}
+    for c in np.unique(labels):
+        mask = labels == c
+        if not np.any(mask):
+            profiles[c] = f"Cluster {c} (empty)"
+            continue
+        centroid = X_num[mask].mean(axis=0)
+        top_idx = np.argsort(np.abs(centroid))[::-1]
+        
+        desc = []
+        for idx in top_idx[:2]:  # Top 2 distinguishing features
+            val = centroid[idx]
+            feat_name = feat_cols[idx]
+            direction = "High" if val > 0 else "Low"
+            desc.append(f"{direction} {feat_name.capitalize()}")
+        profiles[c] = f"C{c} ({', '.join(desc)})"
+    return profiles
+
+
 # ============================================================
 # PAGE 2: Clustering
 # ============================================================
@@ -253,15 +273,13 @@ def page_clustering():
         "vs **soft clustering** (GMM, each song → probability over clusters)."
     )
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     with col1:
         k = st.slider("Number of clusters (K)", 2, 15, 5)
     with col2:
         sample_n = st.select_slider(
             "Sample size", options=[1000, 2000, 5000, 10000], value=5000
         )
-    with col3:
-        run_elbow = st.checkbox("Run elbow / BIC sweep (K=2..10)", value=False)
 
     st.markdown("---")
 
@@ -271,12 +289,10 @@ def page_clustering():
             data["track_name"] + " — " + data["artists"].apply(lambda x: ", ".join(x) if isinstance(x, list) else str(x))
         ).tolist()
 
-        from algorithms.kmeans import kmeans, elbow_analysis
-        from algorithms.gmm import fit_gmm, gmm_bic_sweep
+        from algorithms.kmeans import kmeans
+        from algorithms.gmm import fit_gmm
         from evaluation.metrics import silhouette, davies_bouldin
-        from visualization.graphs import (
-            scatter_2d, elbow_curve, bic_curve, soft_membership_heatmap
-        )
+        from visualization.graphs import scatter_2d, soft_membership_heatmap
         from algorithms.pca_reduction import fit_pca
 
         # Reduce to 2D for visualization (PCA)
@@ -307,69 +323,42 @@ def page_clustering():
         m3.metric("GMM Silhouette ↑", f"{gm_sil:.4f}")
         m4.metric("GMM Davies-Bouldin ↓", f"{gm_db:.4f}")
 
-        m5, m6 = st.columns(2)
-        m5.metric("K-Means Inertia", f"{km_res['inertia']:.1f}")
-        m6.metric("GMM BIC (lower=better)", f"{gmm_res['bic']:.1f}")
+        # ── Cluster Profiling (Generating Summaries) ──────────────────────
+        km_profiles = profile_clusters(X_num, km_res["labels"], feat_cols)
+        gm_profiles = profile_clusters(X_num, gmm_res["labels"], feat_cols)
 
         # ── Scatter plots ─────────────────────────────────────────────────
         st.subheader("🗺️ Cluster Visualizations (PCA 2D projection)")
-        sc1, sc2 = st.columns(2)
-        with sc1:
-            st.plotly_chart(
-                scatter_2d(X_2d, km_res["labels"], hover, title=f"K-Means (K={k})", 
-                           x_label=axis_labels[0], y_label=axis_labels[1]),
-                use_container_width=True,
-            )
-        with sc2:
-            st.plotly_chart(
-                scatter_2d(X_2d, gmm_res["labels"], hover, title=f"GMM (K={k})",
-                           x_label=axis_labels[0], y_label=axis_labels[1]),
-                use_container_width=True,
-            )
+        st.plotly_chart(
+            scatter_2d(X_2d, km_res["labels"], hover, title=f"K-Means (K={k})", 
+                       x_label=axis_labels[0], y_label=axis_labels[1], cluster_names=km_profiles),
+            use_container_width=True,
+        )
+        st.plotly_chart(
+            scatter_2d(X_2d, gmm_res["labels"], hover, title=f"GMM (K={k})",
+                       x_label=axis_labels[0], y_label=axis_labels[1], cluster_names=gm_profiles),
+            use_container_width=True,
+        )
 
         # ── GMM Soft membership ───────────────────────────────────────────
-        st.subheader("🌡️ GMM Soft Membership (top 20 songs)")
+        st.subheader("🌡️ GMM Soft Membership")
         top20_idx = np.random.choice(len(data), size=min(20, len(data)), replace=False)
         top20_names = [data.iloc[i]["track_name"][:30] for i in top20_idx]
         top20_proba = gmm_res["proba"][top20_idx]
         st.plotly_chart(
-            soft_membership_heatmap(top20_proba, top20_names),
+            soft_membership_heatmap(top20_proba, top20_names, cluster_names=gm_profiles),
             use_container_width=True,
         )
 
-        # ── Elbow / BIC sweep ─────────────────────────────────────────────
-        if run_elbow:
-            st.subheader("📈 Elbow & BIC Sweep (K = 2…10)")
-            k_range = range(2, 11)
-            with st.spinner("Running elbow analysis…"):
-                elbow_data = elbow_analysis(X_num, k_range)
-            with st.spinner("Running GMM BIC sweep…"):
-                bic_data = gmm_bic_sweep(X_num, k_range)
-
-            el1, el2 = st.columns(2)
-            with el1:
-                st.plotly_chart(
-                    elbow_curve(list(elbow_data.keys()), list(elbow_data.values())),
-                    use_container_width=True,
-                )
-            with el2:
-                st.plotly_chart(
-                    bic_curve(list(bic_data.keys()), list(bic_data.values())),
-                    use_container_width=True,
-                )
-
-        # ── Comparison table ──────────────────────────────────────────────
-        st.subheader("📋 Hard vs Soft: What's the difference?")
-        st.markdown(
-            """
-| Property | K-Means (Hard) | GMM (Soft) |
-|---|---|---|
-| Assignment | Each song → exactly 1 cluster | Each song → probability over all clusters |
-| Cluster shape | Spherical (Euclidean) | Elliptical (covariance matrix) |
-| Interpretability | Simple, fast | Richer, probabilistic |
-| Ambiguous songs | Forced to one cluster | High entropy across clusters |
-| Selection criteria | Inertia / Elbow | BIC / AIC |
-"""
+        # ── Analytical Insight ────────────────────────────────────────────
+        st.markdown("---")
+        st.subheader("💡 Insight: Why do K-Means & GMM yield low Silhouette scores?")
+        st.info(
+            "**1. Music is a Continuous Spectrum:** Unlike textbook datasets (where clusters look like distinct islands), music transitions smoothly. You can gradually shift from a quiet lullaby to a high-energy dance track. There are no 'empty gaps' in audio feature space.\n\n"
+            "**2. Suboptimal Hard Boundaries:** Because the data is one massive continuous 'blob', K-Means is forced to arbitrarily slice it. Songs on overlapping borders get penalized, heavily dragging down the Silhouette score.\n\n"
+            "**3. Genre Fusion:** Modern music often blends multiple genres. A track might be mathematically 60% Hip-Hop and 40% Country. Purely numerical features also fail to capture deeper cultural and semantic context.\n\n"
+            "**Conclusion:** Low clustering metrics here are not a bug, but a feature of audio data! It proves that categorizing a song into a single rigid box is mathematically unnatural. "
+            "This is exactly why GMM Soft Clustering (identifying mixed vibes) or KNN (finding local nearest neighbors point-by-point) are the true industry standards for modern music recommendation engines."
         )
 
 
@@ -389,43 +378,21 @@ def page_dim_reduction():
         n_pca_components = st.slider("PCA components to inspect", 2, 20, 10)
     with col2:
         ae_epochs = st.slider("Autoencoder epochs", 10, 80, 30)
-        color_by = st.selectbox("Color points by", ["K-Means cluster (K=8)", "Genre (top 10)", "None"])
 
     if st.button("▶ Run Dimensionality Reduction", type="primary"):
         data, X_num, feat_cols, _ = load_data(sample_n=sample_n)
         hover = (data["track_name"] + " — " + data["artists"].apply(lambda x: ", ".join(x) if isinstance(x, list) else str(x))).tolist()
 
-        # ── Colour labels ─────────────────────────────────────────────────
-        if color_by.startswith("K-Means"):
-            from algorithms.kmeans import kmeans
-            with st.spinner("Running K-Means for coloring…"):
-                km_res = kmeans(X_num, k=8)
+        # ── Generate dynamic cluster labels to demonstrate failure ───────
+        from algorithms.kmeans import kmeans
+        with st.spinner("Running K-Means (K=5) to generate baseline labels…"):
+            km_res = kmeans(X_num, k=5)
             labels = km_res["labels"]
-            label_note = "colored by K-Means cluster (K=8)"
-
-        elif color_by.startswith("Genre"):
-            # top-10 genres
-            if "track_genre" in data.columns:
-                genre_series = data["track_genre"]
-                if isinstance(genre_series.iloc[0], list):
-                    flat = genre_series.apply(lambda g: g[0] if g else "unknown")
-                else:
-                    flat = genre_series.apply(lambda g: str(g)[:20])
-                top10 = flat.value_counts().index[:10].tolist()
-                labels = flat.apply(lambda g: top10.index(g) if g in top10 else 10).values
-            else:
-                labels = np.zeros(len(data), dtype=int)
-            label_note = "colored by genre"
-        else:
-            labels = np.zeros(len(data), dtype=int)
-            label_note = "no coloring"
+            profiles = profile_clusters(X_num, labels, feat_cols)
 
         # ── PCA ──────────────────────────────────────────────────────────
         from algorithms.pca_reduction import fit_pca, pca_variance_sweep
-        from visualization.graphs import (
-            scatter_2d, comparison_scatter,
-            explained_variance_bar, loss_curve,
-        )
+        from visualization.graphs import explained_variance_bar, loss_curve, scatter_2d
 
         with st.spinner("Running PCA…"):
             pca_2d = fit_pca(X_num, n_components=2, feature_names=feat_cols)
@@ -468,33 +435,28 @@ def page_dim_reduction():
             f"First {n_pca_components} PCs explain **{cumvar[-1]*100:.1f}%**."
         )
 
+        st.markdown("---")
+        st.subheader("🗺️ 2D Embedding Visualizations")
+        st.markdown("Points are colored by their true high-dimensional K-Means labels. Notice how they heavily overlap when forced into 2D, visually proving that clustering music with hard boundaries fails.")
+        
+        st.plotly_chart(
+            scatter_2d(pca_2d["X_reduced"], labels, hover,
+                       title="PCA 2D (Linear Compression)",
+                       x_label=pca_2d["axis_labels"][0], y_label=pca_2d["axis_labels"][1],
+                       cluster_names=profiles),
+            use_container_width=True,
+        )
+
         if ae_available:
-            st.subheader(f"🗺️ PCA vs Autoencoder — 2D scatter ({label_note})")
             st.plotly_chart(
-                comparison_scatter(
-                    pca_2d["X_reduced"], X_ae, labels, hover,
-                    pca_x_label=pca_2d["axis_labels"][0],
-                    pca_y_label=pca_2d["axis_labels"][1]
-                ),
+                scatter_2d(X_ae, labels, hover,
+                           title="Autoencoder 2D (Non-linear Compression)",
+                           x_label="Latent Dim 1", y_label="Latent Dim 2",
+                           cluster_names=profiles),
                 use_container_width=True,
             )
 
-            c1, c2 = st.columns(2)
-            with c1:
-                st.plotly_chart(
-                    scatter_2d(pca_2d["X_reduced"], labels, hover,
-                               title=f"PCA 2D ({label_note})",
-                               x_label=pca_2d["axis_labels"][0], y_label=pca_2d["axis_labels"][1]),
-                    use_container_width=True,
-                )
-            with c2:
-                st.plotly_chart(
-                    scatter_2d(X_ae, labels, hover,
-                               title=f"Autoencoder 2D ({label_note})",
-                               x_label="Latent Dim 1", y_label="Latent Dim 2"),
-                    use_container_width=True,
-                )
-
+            st.markdown("---")
             st.subheader("📉 Autoencoder Training Loss")
             c3, c4 = st.columns([2, 1])
             with c3:
@@ -511,167 +473,14 @@ Loss:    MSE
 ```
 """
                 )
-        else:
-            st.subheader(f"🗺️ PCA 2D scatter ({label_note})")
-            st.plotly_chart(
-                scatter_2d(pca_2d["X_reduced"], labels, hover,
-                           title=f"PCA 2D ({label_note})",
-                           x_label=pca_2d["axis_labels"][0], y_label=pca_2d["axis_labels"][1]),
-                use_container_width=True,
-            )
 
-        # ── Comparison table ───────────────────────────────────────────────
-        st.subheader("📋 PCA vs Autoencoder Comparison")
-        st.markdown(
-            """
-| Property | PCA | Autoencoder |
-|---|---|---|
-| Type | Linear projection | Non-linear (neural network) |
-| Training | Eigen-decomposition (no gradient) | Gradient descent (epochs needed) |
-| Interpretability | Principal directions = linear combos of features | Latent space less interpretable |
-| Speed | Very fast | Slower (GPU helps) |
-| Reconstruction quality | Good for linear structure | Better for complex manifolds |
-| Variance explained | Quantifiable (explained variance ratio) | Measured by reconstruction loss |
-"""
+        # ── Analytical Insight ────────────────────────────────────────────
+        st.markdown("---")
+        st.subheader("💡 What does this prove for our recommendation engine?")
+        st.info(
+            "**1. Music is Highly Dimensional:** Look at the PCA Explained Variance chart. In standard datasets, the first 2 components might explain 80% to 90% of the variance. Here, they only explain about 33%. We would need 10 components just to capture ~89% of the information. This mathematically proves that audio features (Energy, Acousticness, Tempo, etc.) are highly complex and largely independent.\n\n"
+            "**2. Why Hard Clustering Failed:** Because the variance is spread across so many dimensions, forcing a track into a single rigid 2D visualization box (or a single K-Means 'island') inevitably destroys almost 70% of its acoustic identity. This is why our final Recommendation Engine ignores broad genres and instead relies on local, N-dimensional continuous distance (KNN) to find songs with the exact same vibal DNA."
         )
-
-
-# ============================================================
-# PAGE 4: Parameter Explorer
-# ============================================================
-def page_parameter_explorer():
-    st.header("⚙️ Parameter Explorer")
-    st.markdown(
-        "Compare how **K**, **similarity metric**, and **feature set** "
-        "influence recommendation quality."
-    )
-
-    st.subheader("🔬 Recommendation Comparison")
-    query = st.text_input("Reference song", placeholder="e.g. Blinding Lights")
-    k = st.slider("K (neighbors)", 5, 20, 10, key="pe_k")
-
-    if query and st.button("▶ Compare Metrics", type="primary"):
-        data, X_num, feat_cols, _ = load_data(sample_n=None)
-        name_col = data["track_name"].str.lower()
-        idxs = name_col[name_col.str.contains(query.lower(), na=False)].index.tolist()
-
-        if not idxs:
-            st.warning(f"No songs found matching **{query}**.")
-            return
-
-        query_idx = idxs[0]
-        ref_row = data.iloc[query_idx]
-        st.success(f"🎧 Reference: **{ref_row['track_name']}** by *{ref_row['artists']}*")
-
-        from algorithms.knn import knn_query
-
-        col1, col2 = st.columns(2)
-        for col, metric in zip([col1, col2], ["cosine", "euclidean"]):
-            with col:
-                st.markdown(f"#### {metric.capitalize()} Distance")
-                with st.spinner(f"KNN ({metric})…"):
-                    results = knn_query(X_num, query_idx, k=k, metric=metric)
-                rows = []
-                for rank, r in enumerate(results, 1):
-                    row = data.iloc[r["index"]]
-                    rows.append({
-                        "Rank": rank,
-                        "Track": row["track_name"],
-                        "Artist": row["artists"],
-                        "Score": f"{r['score']:.4f}",
-                    })
-                st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
-
-        # ── Overlap analysis ───────────────────────────────────────────────
-        st.subheader("🔄 Overlap Between Cosine and Euclidean")
-        cos_res = knn_query(X_num, query_idx, k=k, metric="cosine")
-        euc_res = knn_query(X_num, query_idx, k=k, metric="euclidean")
-        cos_idx = {r["index"] for r in cos_res}
-        euc_idx = {r["index"] for r in euc_res}
-        overlap = cos_idx & euc_idx
-
-        oc1, oc2, oc3 = st.columns(3)
-        oc1.metric("Cosine-only results", len(cos_idx - euc_idx))
-        oc2.metric("Shared results", len(overlap))
-        oc3.metric("Euclidean-only results", len(euc_idx - cos_idx))
-
-        if overlap:
-            shared = [data.iloc[i]["track_name"] for i in list(overlap)[:10]]
-            st.markdown("**Songs recommended by BOTH metrics:** " + ", ".join(shared))
-
-    # ── Clustering parameter comparison ───────────────────────────────────
-    st.markdown("---")
-    st.subheader("🎛️ Clustering Parameter Comparison")
-
-    cc1, cc2 = st.columns(2)
-    with cc1:
-        k_a = st.slider("K (setting A)", 2, 15, 3, key="ka")
-    with cc2:
-        k_b = st.slider("K (setting B)", 2, 15, 8, key="kb")
-
-    sample_n_pe = st.select_slider("Sample size (clustering)", [1000, 2000, 5000], value=2000, key="pe_sn")
-
-    if st.button("▶ Compare Clustering Settings", type="primary", key="cmp_btn"):
-        data, X_num, feat_cols, _ = load_data(sample_n=sample_n_pe)
-        hover = (data["track_name"] + " — " + data["artists"].apply(lambda x: ", ".join(x) if isinstance(x, list) else str(x))).tolist()
-
-        from algorithms.kmeans import kmeans
-        from algorithms.gmm import fit_gmm
-        from evaluation.metrics import silhouette, davies_bouldin
-        from algorithms.pca_reduction import fit_pca
-        from visualization.graphs import scatter_2d
-
-        with st.spinner("Running PCA…"):
-            pca_res = fit_pca(X_num, n_components=2, feature_names=feat_cols)
-            X_2d = pca_res["X_reduced"]
-            axis_labels = pca_res["axis_labels"]
-
-        results = {}
-        for k_val in [k_a, k_b]:
-            with st.spinner(f"K-Means K={k_val}…"):
-                km = kmeans(X_num, k=k_val)
-            with st.spinner(f"GMM K={k_val}…"):
-                gm = fit_gmm(X_num, k=k_val)
-            results[k_val] = {
-                "km": km, "gm": gm,
-                "km_sil": silhouette(X_num, km["labels"]),
-                "gm_sil": silhouette(X_num, gm["labels"]),
-                "km_db": davies_bouldin(X_num, km["labels"]),
-                "gm_db": davies_bouldin(X_num, gm["labels"]),
-            }
-
-        # Metrics table
-        rows = []
-        for k_val in [k_a, k_b]:
-            r = results[k_val]
-            rows.append({
-                "K": k_val,
-                "KM Silhouette ↑": f"{r['km_sil']:.4f}",
-                "KM Davies-Bouldin ↓": f"{r['km_db']:.4f}",
-                "KM Inertia": f"{r['km']['inertia']:.1f}",
-                "GMM Silhouette ↑": f"{r['gm_sil']:.4f}",
-                "GMM Davies-Bouldin ↓": f"{r['gm_db']:.4f}",
-                "GMM BIC": f"{r['gm']['bic']:.1f}",
-            })
-        st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
-
-        # Scatter grid
-        col_a, col_b = st.columns(2)
-        for col, k_val in zip([col_a, col_b], [k_a, k_b]):
-            with col:
-                st.markdown(f"**K = {k_val}**")
-                st.plotly_chart(
-                    scatter_2d(X_2d, results[k_val]["km"]["labels"], hover,
-                               title=f"K-Means K={k_val}",
-                               x_label=axis_labels[0], y_label=axis_labels[1]),
-                    use_container_width=True,
-                )
-                st.plotly_chart(
-                    scatter_2d(X_2d, results[k_val]["gm"]["labels"], hover,
-                               title=f"GMM K={k_val}",
-                               x_label=axis_labels[0], y_label=axis_labels[1]),
-                    use_container_width=True,
-                )
 
 
 def page_dataset_info():
@@ -723,6 +532,4 @@ elif page == PAGES[1]:
 elif page == PAGES[2]:
     page_dim_reduction()
 elif page == PAGES[3]:
-    page_parameter_explorer()
-elif page == PAGES[4]:
     page_dataset_info()

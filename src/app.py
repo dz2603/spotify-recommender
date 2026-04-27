@@ -100,6 +100,12 @@ def load_lookup_tables():
     return song_lookup, neighbor_lookup, True
 
 
+def spotify_player(track_id: str, height: int = 80):
+    """Embeds a Spotify player for a given track ID."""
+    iframe = f'<iframe src="https://open.spotify.com/embed/track/{track_id}" width="100%" height="{height}" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>'
+    st.markdown(iframe, unsafe_allow_html=True)
+
+
 # ============================================================
 # PAGE 1: Song Recommendation
 # ============================================================
@@ -153,6 +159,7 @@ def page_recommendation():
         f"🎧 Reference: **{ref_row['track_name']}** "
         f"by *{ref_row['artists']}*"
     )
+    spotify_player(ref_row["track_id"], height=152)
 
     from src.algorithms.knn import knn_query
     with st.spinner("Computing neighbors…"):
@@ -169,6 +176,15 @@ def page_recommendation():
             score_col: f"{r['score']:.4f}",
         })
     st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+    # --- Direct Player Section ---
+    st.markdown("### ⏯️ Listen to Recommendations")
+    cols = st.columns(2)
+    for i, r in enumerate(results):
+        with cols[i % 2]:
+            row = data.iloc[r["index"]]
+            st.caption(f"#{i+1}: {row['track_name']} — {row['artists']}")
+            spotify_player(row["track_id"], height=80)
 
     with st.expander("ℹ️ How KNN from scratch works"):
         st.markdown(

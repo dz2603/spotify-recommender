@@ -20,9 +20,6 @@ def scatter_2d(
     cluster_names: dict = None,
 ) -> go.Figure:
     """Color-coded 2D scatter plot for cluster visualization."""
-    n_clusters = len(np.unique(labels))
-    colors = [PALETTE[int(l) % len(PALETTE)] for l in labels]
-
     fig = go.Figure()
     for c in np.unique(labels):
         mask = labels == c
@@ -43,6 +40,47 @@ def scatter_2d(
         yaxis_title=y_label,
         legend_title="Cluster",
         height=500,
+        template="plotly_white",
+    )
+    return fig
+
+
+def scatter_3d(
+    X_3d: np.ndarray,
+    labels: np.ndarray,
+    hover_texts: list[str] = None,
+    title: str = "3D Scatter",
+    axis_labels: list[str] = None,
+    cluster_names: dict = None,
+) -> go.Figure:
+    """Color-coded 3D scatter plot for cluster visualization."""
+    if axis_labels is None:
+        axis_labels = ["PC1", "PC2", "PC3"]
+    
+    fig = go.Figure()
+    for c in np.unique(labels):
+        mask = labels == c
+        name = cluster_names[c] if cluster_names and c in cluster_names else f"Cluster {c}"
+        fig.add_trace(go.Scatter3d(
+            x=X_3d[mask, 0],
+            y=X_3d[mask, 1],
+            z=X_3d[mask, 2],
+            mode="markers",
+            name=name,
+            marker=dict(color=PALETTE[int(c) % len(PALETTE)], size=3, opacity=0.7),
+            text=[hover_texts[i] for i in np.where(mask)[0]] if hover_texts else None,
+            hoverinfo="text+name" if hover_texts else "x+y+z+name",
+        ))
+
+    fig.update_layout(
+        title=title,
+        scene=dict(
+            xaxis_title=axis_labels[0],
+            yaxis_title=axis_labels[1],
+            zaxis_title=axis_labels[2],
+        ),
+        legend_title="Cluster",
+        height=700,
         template="plotly_white",
     )
     return fig

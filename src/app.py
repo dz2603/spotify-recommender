@@ -224,13 +224,16 @@ def page_clustering():
         "vs **soft clustering** (GMM, each song → probability over clusters)."
     )
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
         k = st.slider("Number of clusters (K)", 2, 15, 5)
     with col2:
         sample_n = st.select_slider(
             "Sample size", options=[1000, 2000, 5000, 10000], value=5000
         )
+    with col3:
+        st.write("") # spacing
+        use_3d = st.checkbox("Show clusters in 3D", value=False, help="Use 3 PCA components for visualization")
 
     st.markdown("---")
 
@@ -243,13 +246,14 @@ def page_clustering():
         from src.algorithms.kmeans import kmeans
         from src.algorithms.gmm import fit_gmm
         from src.evaluation.metrics import silhouette, davies_bouldin
-        from src.visualization.graphs import scatter_2d, soft_membership_heatmap
+        from src.visualization.graphs import scatter_2d, scatter_3d, soft_membership_heatmap
         from src.algorithms.pca_reduction import fit_pca
 
-        # Reduce to 2D for visualization (PCA)
-        with st.spinner("Running PCA for 2D visualization…"):
-            pca_res = fit_pca(X_num, n_components=2, feature_names=feat_cols)
-            X_2d = pca_res["X_reduced"]
+        # Reduce to visual dimensions (PCA)
+        n_viz = 3 if use_3d else 2
+        with st.spinner(f"Running PCA for {n_viz}D visualization…"):
+            pca_res = fit_pca(X_num, n_components=n_viz, feature_names=feat_cols)
+            X_viz = pca_res["X_reduced"]
             axis_labels = pca_res["axis_labels"]
 
         # ── K-Means ──────────────────────────────────────────────────────
@@ -279,17 +283,31 @@ def page_clustering():
         gm_profiles = profile_clusters(X_num, gmm_res["labels"], feat_cols)
 
         # ── Scatter plots ─────────────────────────────────────────────────
-        st.subheader("🗺️ Cluster Visualizations (PCA 2D projection)")
-        st.plotly_chart(
-            scatter_2d(X_2d, km_res["labels"], hover, title=f"K-Means (K={k})", 
-                       x_label=axis_labels[0], y_label=axis_labels[1], cluster_names=km_profiles),
-            use_container_width=True,
-        )
-        st.plotly_chart(
-            scatter_2d(X_2d, gmm_res["labels"], hover, title=f"GMM (K={k})",
-                       x_label=axis_labels[0], y_label=axis_labels[1], cluster_names=gm_profiles),
-            use_container_width=True,
-        )
+        viz_title = f"(PCA {n_viz}D projection)"
+        st.subheader(f"🗺️ Cluster Visualizations {viz_title}")
+        
+        if use_3d:
+            st.plotly_chart(
+                scatter_3d(X_viz, km_res["labels"], hover, title=f"K-Means (K={k})", 
+                           axis_labels=axis_labels, cluster_names=km_profiles),
+                use_container_width=True,
+            )
+            st.plotly_chart(
+                scatter_3d(X_viz, gmm_res["labels"], hover, title=f"GMM (K={k})",
+                           axis_labels=axis_labels, cluster_names=gm_profiles),
+                use_container_width=True,
+            )
+        else:
+            st.plotly_chart(
+                scatter_2d(X_viz, km_res["labels"], hover, title=f"K-Means (K={k})", 
+                           x_label=axis_labels[0], y_label=axis_labels[1], cluster_names=km_profiles),
+                use_container_width=True,
+            )
+            st.plotly_chart(
+                scatter_2d(X_viz, gmm_res["labels"], hover, title=f"GMM (K={k})",
+                           x_label=axis_labels[0], y_label=axis_labels[1], cluster_names=gm_profiles),
+                use_container_width=True,
+            )
 
         # ── GMM Soft membership ───────────────────────────────────────────
         st.subheader("🌡️ GMM Soft Membership")

@@ -71,7 +71,7 @@ def knn_query(
         dists[query_idx] = 1e18  # exclude self
         top_idx = np.argpartition(dists, k)[:k]
         top_idx = top_idx[np.argsort(dists[top_idx])]
-        return [{"index": int(i), "score": float(-dists[i])} for i in top_idx]
+        return [{"index": int(i), "score": float(dists[i])} for i in top_idx]
     else:
         raise ValueError(f"Unknown metric: {metric}. Use 'cosine' or 'euclidean'.")
 

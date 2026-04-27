@@ -159,13 +159,14 @@ def page_recommendation():
         results = knn_query(X_num, query_idx, k=k, metric=metric)
 
     rows = []
+    score_col = "Similarity Score" if metric == "cosine" else "Distance"
     for rank, r in enumerate(results, 1):
         row = data.iloc[r["index"]]
         rows.append({
             "Rank": rank,
             "Track": row["track_name"],
             "Artist(s)": row["artists"],
-            "Score": f"{r['score']:.4f}",
+            score_col: f"{r['score']:.4f}",
         })
     st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 

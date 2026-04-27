@@ -103,7 +103,21 @@ def load_lookup_tables():
 
 def spotify_player(track_id: str, height: int = 80):
     """Embeds a Spotify player for a given track ID."""
-    iframe = f'<iframe src="https://open.spotify.com/embed/track/{track_id}" width="100%" height="{height}" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>'
+    iframe = f"""
+    <div style="margin-bottom:12px;">
+      <div style="border-radius:12px; overflow:hidden; background:#0e1117; line-height:0; box-shadow: inset 0 0 0 1px #0e1117;">
+        <iframe
+          src="https://open.spotify.com/embed/track/{track_id}?theme=0"
+          width="100%"
+          height="{height}"
+          frameborder="0"
+          allowtransparency="true"
+          allow="encrypted-media"
+          style="display:block; border:none; margin:0; background:#121212;"
+        ></iframe>
+      </div>
+    </div>
+    """
     st.markdown(iframe, unsafe_allow_html=True)
 
 

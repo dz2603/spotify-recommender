@@ -18,8 +18,8 @@ REPO = os.path.dirname(SRC)
 DATA_DIR = os.path.join(REPO, "data")
 RESULTS_DIR = os.path.join(REPO, "results", "sample_recommendations")
 
-if SRC not in sys.path:
-    sys.path.insert(0, SRC)
+if REPO not in sys.path:
+    sys.path.insert(0, REPO)
 
 import json
 import numpy as np
@@ -63,7 +63,7 @@ def load_data(sample_n: int | None = None, random_state: int = 42):
     Returns (data_df, X_dense, feature_cols).
     X_dense: standardized numeric audio features only (for clustering / dim-red).
     """
-    from data_preprocessing.datapreprocessing import build_weighted_feature_matrix
+    from src.data_preprocessing.datapreprocessing import build_weighted_feature_matrix
     csv_path = os.path.join(DATA_DIR, "dataset.csv")
     X_weighted, data, pipeline, weights = build_weighted_feature_matrix(
         csv_path=csv_path,
@@ -219,7 +219,7 @@ def page_recommendation():
             f"by *{ref_row['artists']}*"
         )
 
-        from algorithms.knn import knn_query
+        from src.algorithms.knn import knn_query
         with st.spinner("Computing neighbors…"):
             results = knn_query(X_num, query_idx, k=k, metric=metric)
 
@@ -236,7 +236,7 @@ def page_recommendation():
 
         with st.expander("ℹ️ How KNN from scratch works"):
             st.markdown(
-                """
+                \"\"\"
 **Cosine similarity** (from scratch):
 1. L2-normalise every row: `X_norm = X / ||X||`
 2. Query similarity: `sim = X_norm @ X_norm[query_idx]`
@@ -246,12 +246,12 @@ def page_recommendation():
 1. `diff = X - X[query_idx]`
 2. `dist = sqrt(einsum("ij,ij->i", diff, diff))`
 3. Return K smallest distances
-"""
+\"\"\"
             )
 
 
 def profile_clusters(X_num: np.ndarray, labels: np.ndarray, feat_cols: list[str]) -> dict:
-    """Generate human-readable summary labels for clusters based on top features."""
+    \"\"\"Generate human-readable summary labels for clusters based on top features.\"\"\"
     profiles = {}
     for c in np.unique(labels):
         mask = labels == c
@@ -297,11 +297,11 @@ def page_clustering():
             data["track_name"] + " — " + data["artists"].apply(lambda x: ", ".join(x) if isinstance(x, list) else str(x))
         ).tolist()
 
-        from algorithms.kmeans import kmeans
-        from algorithms.gmm import fit_gmm
-        from evaluation.metrics import silhouette, davies_bouldin
-        from visualization.graphs import scatter_2d, soft_membership_heatmap
-        from algorithms.pca_reduction import fit_pca
+        from src.algorithms.kmeans import kmeans
+        from src.algorithms.gmm import fit_gmm
+        from src.evaluation.metrics import silhouette, davies_bouldin
+        from src.visualization.graphs import scatter_2d, soft_membership_heatmap
+        from src.algorithms.pca_reduction import fit_pca
 
         # Reduce to 2D for visualization (PCA)
         with st.spinner("Running PCA for 2D visualization…"):
@@ -362,18 +362,18 @@ def page_clustering():
         st.markdown("---")
         st.subheader("💡 Insight: Why do K-Means & GMM yield low Silhouette scores?")
         st.info(
-            "**1. Music is a Continuous Spectrum:** Unlike textbook datasets (where clusters look like distinct islands), music transitions smoothly. You can gradually shift from a quiet lullaby to a high-energy dance track. There are no 'empty gaps' in audio feature space.\n\n"
-            "**2. Suboptimal Hard Boundaries:** Because the data is one massive continuous 'blob', K-Means is forced to arbitrarily slice it. Songs on overlapping borders get penalized, heavily dragging down the Silhouette score.\n\n"
-            "**3. Genre Fusion:** Modern music often blends multiple genres. A track might be mathematically 60% Hip-Hop and 40% Country. Purely numerical features also fail to capture deeper cultural and semantic context.\n\n"
+            "**1. Music is a Continuous Spectrum:** Unlike textbook datasets (where clusters look like distinct islands), music transitions smoothly. You can gradually shift from a quiet lullaby to a high-energy dance track. There are no 'empty gaps' in audio feature space.\\n\\n"
+            "**2. Suboptimal Hard Boundaries:** Because the data is one massive continuous 'blob', K-Means is forced to arbitrarily slice it. Songs on overlapping borders get penalized, heavily dragging down the Silhouette score.\\n\\n"
+            "**3. Genre Fusion:** Modern music often blends multiple genres. A track might be mathematically 60% Hip-Hop and 40% Country. Purely numerical features also fail to capture deeper cultural and semantic context.\\n\\n"
             "**Conclusion:** Low clustering metrics here are not a bug, but a feature of audio data! It proves that categorizing a song into a single rigid box is mathematically unnatural. "
             "This is exactly why GMM Soft Clustering (identifying mixed vibes) or KNN (finding local nearest neighbors point-by-point) are true industry standards for modern recommendation engines."
         )
 
         st.subheader("💡 How are the Cluster Labels Generated?")
         st.info(
-            "Notice the labels like `C0 (High Energy, Low Acousticness)`? These are generated dynamically using **Centroid Analysis** in the original high-dimensional space (not PCA!):\n\n"
-            "**1. Standardization:** Our `StandardScaler` normalizes features so the global average of the Spotify dataset is 0. Positive means above average; negative means below average.\n\n"
-            "**2. Centroid Calculation:** For each cluster, we average the features of all its songs to find its multi-dimensional center (the centroid).\n\n"
+            "Notice the labels like `C0 (High Energy, Low Acousticness)`? These are generated dynamically using **Centroid Analysis** in the original high-dimensional space (not PCA!):\\n\\n"
+            "**1. Standardization:** Our `StandardScaler` normalizes features so the global average of the Spotify dataset is 0. Positive means above average; negative means below average.\\n\\n"
+            "**2. Centroid Calculation:** For each cluster, we average the features of all its songs to find its multi-dimensional center (the centroid).\\n\\n"
             "**3. Top 2 Extreme Traits:** We sort the centroid's values by absolute magnitude to find which features deviate the furthest from 0. If the top feature is `energy (+1.5)` and the second is `acousticness (-1.2)`, we automatically name it `High Energy, Low Acousticness`! This mathematically identifies the true acoustic DNA of the group."
         )
 
@@ -400,22 +400,25 @@ def page_dim_reduction():
         hover = (data["track_name"] + " — " + data["artists"].apply(lambda x: ", ".join(x) if isinstance(x, list) else str(x))).tolist()
 
         # ── Generate dynamic cluster labels to demonstrate failure ───────
-        from algorithms.kmeans import kmeans
+        from src.algorithms.kmeans import kmeans
         with st.spinner("Running K-Means (K=5) to generate baseline labels…"):
             km_res = kmeans(X_num, k=5)
             labels = km_res["labels"]
             profiles = profile_clusters(X_num, labels, feat_cols)
 
         # ── PCA ──────────────────────────────────────────────────────────
-        from algorithms.pca_reduction import fit_pca, pca_variance_sweep
-        from visualization.graphs import explained_variance_bar, loss_curve, scatter_2d
+        from src.algorithms.pca_reduction import fit_pca, pca_variance_sweep
+        from src.visualization.graphs import (
+            scatter_2d,
+            explained_variance_bar, loss_curve,
+        )
 
         with st.spinner("Running PCA…"):
             pca_2d = fit_pca(X_num, n_components=2, feature_names=feat_cols)
             pca_sweep = pca_variance_sweep(X_num, max_components=n_pca_components, feature_names=feat_cols)
 
         # ── Autoencoder ───────────────────────────────────────────────────
-        from algorithms.autoencoder import fit_autoencoder, TORCH_AVAILABLE
+        from src.algorithms.autoencoder import fit_autoencoder, TORCH_AVAILABLE
 
         ae_available = False
         if TORCH_AVAILABLE:
@@ -480,21 +483,21 @@ def page_dim_reduction():
             with c4:
                 st.metric("Final Reconstruction Loss", f"{ae_res['final_loss']:.6f}")
                 st.markdown(
-                    """
+                    \"\"\"
 **Architecture:**
 ```
 Encoder: d → 128 → 64 → 2
 Decoder: 2 → 64 → 128 → d
 Loss:    MSE
 ```
-"""
+\"\"\"
                 )
 
         # ── Analytical Insight ────────────────────────────────────────────
         st.markdown("---")
         st.subheader("💡 What does this prove for our recommendation engine?")
         st.info(
-            "**1. Music is Highly Dimensional:** Look at the PCA Explained Variance chart. In standard datasets, the first 2 components might explain 80% to 90% of the variance. Here, they only explain about 33%. We would need 10 components just to capture ~89% of the information. This mathematically proves that audio features (Energy, Acousticness, Tempo, etc.) are highly complex and largely independent.\n\n"
+            "**1. Music is Highly Dimensional:** Look at the PCA Explained Variance chart. In standard datasets, the first 2 components might explain 80% to 90% of the variance. Here, they only explain about 33%. We would need 10 components just to capture ~89% of the information. This mathematically proves that audio features (Energy, Acousticness, Tempo, etc.) are highly complex and largely independent.\\n\\n"
             "**2. Why Hard Clustering Failed:** Because the variance is spread across so many dimensions, forcing a track into a single rigid 2D visualization box (or a single K-Means 'island') inevitably destroys almost 70% of its acoustic identity. This is why our final Recommendation Engine ignores broad genres and instead relies on local, N-dimensional continuous distance (KNN) to find songs with the exact same vibal DNA."
         )
 
@@ -532,8 +535,8 @@ def page_dataset_info():
 
     with st.expander("Feature Matrix Details"):
         st.markdown(
-            f"- Standardized numeric matrix shape: **{X_num.shape[0]:,} x {X_num.shape[1]:,}**\n"
-            f"- Numeric feature count used in modeling: **{len(feat_cols):,}**\n"
+            f"- Standardized numeric matrix shape: **{X_num.shape[0]:,} x {X_num.shape[1]:,}**\\n"
+            f"- Numeric feature count used in modeling: **{len(feat_cols):,}**\\n"
             f"- Non-numeric columns in raw data: **{n_non_numeric:,}**"
         )
 

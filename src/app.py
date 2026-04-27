@@ -121,7 +121,7 @@ def page_recommendation():
 
     col1, col2 = st.columns([2, 1])
     with col1:
-        query = st.text_input("Search for a song", placeholder="e.g. Shape of You")
+        query = st.text_input("Search for a song", placeholder="e.g. Gangnam Style")
     with col2:
         k = st.slider("Number of recommendations (K)", 5, 20, 10)
 

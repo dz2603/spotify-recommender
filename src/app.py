@@ -183,6 +183,13 @@ def page_recommendation():
 3. Return K smallest distances
 """
         )
+    
+    st.info(
+        "💡 **Professional Note on Data Preprocessing**: "
+        "All audio features (Tempo, Loudness, Energy, etc.) have been **Standardized** (using `StandardScaler`). "
+        "This ensures that features with larger numerical ranges do not unfairly dominate the similarity calculation, "
+        "making the recommendation balanced across all acoustic dimensions."
+    )
 
 
 def profile_clusters(X_num: np.ndarray, labels: np.ndarray, feat_cols: list[str]) -> dict:
@@ -474,6 +481,11 @@ def page_dataset_info():
             f"- Numeric feature count used in modeling: **{len(feat_cols):,}**\n"
             f"- Non-numeric columns in raw data: **{n_non_numeric:,}**"
         )
+
+    st.success(
+        "✅ **Feature Engineering Status**: All numeric data has been successfully standardized (Mean=0, Std=1). "
+        "This is a critical step for distance-based algorithms like KNN and K-Means to ensure mathematically sound results."
+    )
 
 
 # ============================================================

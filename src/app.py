@@ -349,12 +349,15 @@ def page_dim_reduction():
         "PCA is linear; the Autoencoder can capture non-linear structure."
     )
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
         sample_n = st.select_slider("Sample size", [500, 1000, 2000, 5000], value=2000)
         n_pca_components = st.slider("PCA components to inspect", 2, 20, 10)
     with col2:
         ae_epochs = st.slider("Autoencoder epochs", 10, 80, 30)
+    with col3:
+        st.write("") # spacing
+        use_3d = st.checkbox("Show embeddings in 3D", value=False, help="Use 3D latent space for visualization")
 
     if st.button("▶ Run Dimensionality Reduction", type="primary"):
         data, X_num, feat_cols, _ = load_data(sample_n=sample_n)
@@ -370,12 +373,13 @@ def page_dim_reduction():
         # ── PCA ──────────────────────────────────────────────────────────
         from src.algorithms.pca_reduction import fit_pca, pca_variance_sweep
         from src.visualization.graphs import (
-            scatter_2d,
+            scatter_2d, scatter_3d,
             explained_variance_bar, loss_curve,
         )
 
-        with st.spinner("Running PCA…"):
-            pca_2d = fit_pca(X_num, n_components=2, feature_names=feat_cols)
+        n_viz = 3 if use_3d else 2
+        with st.spinner(f"Running PCA ({n_viz}D)…"):
+            pca_res = fit_pca(X_num, n_components=n_viz, feature_names=feat_cols)
             pca_sweep = pca_variance_sweep(X_num, max_components=n_pca_components, feature_names=feat_cols)
 
         # ── Autoencoder ───────────────────────────────────────────────────
@@ -389,8 +393,8 @@ def page_dim_reduction():
                 pct = int(epoch / ae_epochs * 100)
                 progress_bar.progress(pct, text=f"Epoch {epoch}/{ae_epochs} — loss {loss:.4f}")
 
-            with st.spinner("Training Autoencoder…"):
-                ae_res = fit_autoencoder(X_num, epochs=ae_epochs, progress_callback=ae_progress)
+            with st.spinner(f"Training Autoencoder ({n_viz}D latent)…"):
+                ae_res = fit_autoencoder(X_num, epochs=ae_epochs, latent_dim=n_viz, progress_callback=ae_progress)
             progress_bar.empty()
 
             if ae_res["available"]:
@@ -416,25 +420,42 @@ def page_dim_reduction():
         )
 
         st.markdown("---")
-        st.subheader("🗺️ 2D Embedding Visualizations")
-        st.markdown("Points are colored by their true high-dimensional K-Means labels. Notice how they heavily overlap when forced into 2D, visually proving that clustering music with hard boundaries fails.")
+        viz_title = f"{n_viz}D Embedding Visualizations"
+        st.subheader(f"🗺️ {viz_title}")
+        st.markdown(f"Points are colored by their true high-dimensional K-Means labels. Notice how they heavily overlap when forced into {n_viz}D, visually proving that clustering music with hard boundaries fails.")
         
-        st.plotly_chart(
-            scatter_2d(pca_2d["X_reduced"], labels, hover,
-                       title="PCA 2D (Linear Compression)",
-                       x_label=pca_2d["axis_labels"][0], y_label=pca_2d["axis_labels"][1],
-                       cluster_names=profiles),
-            use_container_width=True,
-        )
-
-        if ae_available:
+        if use_3d:
             st.plotly_chart(
-                scatter_2d(X_ae, labels, hover,
-                           title="Autoencoder 2D (Non-linear Compression)",
-                           x_label="Latent Dim 1", y_label="Latent Dim 2",
+                scatter_3d(pca_res["X_reduced"], labels, hover,
+                           title="PCA 3D (Linear Compression)",
+                           axis_labels=pca_res["axis_labels"],
                            cluster_names=profiles),
                 use_container_width=True,
             )
+            if ae_available:
+                st.plotly_chart(
+                    scatter_3d(ae_res["X_reduced"], labels, hover,
+                               title="Autoencoder 3D (Non-linear Compression)",
+                               axis_labels=["Latent 1", "Latent 2", "Latent 3"],
+                               cluster_names=profiles),
+                    use_container_width=True,
+                )
+        else:
+            st.plotly_chart(
+                scatter_2d(pca_res["X_reduced"], labels, hover,
+                           title="PCA 2D (Linear Compression)",
+                           x_label=pca_res["axis_labels"][0], y_label=pca_res["axis_labels"][1],
+                           cluster_names=profiles),
+                use_container_width=True,
+            )
+            if ae_available:
+                st.plotly_chart(
+                    scatter_2d(ae_res["X_reduced"], labels, hover,
+                               title="Autoencoder 2D (Non-linear Compression)",
+                               x_label="Latent Dim 1", y_label="Latent Dim 2",
+                               cluster_names=profiles),
+                    use_container_width=True,
+                )
 
             st.markdown("---")
             st.subheader("📉 Autoencoder Training Loss")

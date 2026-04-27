@@ -1,6 +1,6 @@
 """
 Simple PyTorch Autoencoder for dimensionality reduction.
-Compresses song feature vectors to a 2D latent space.
+Compresses song feature vectors to a 2D or 3D latent space.
 Falls back gracefully if torch is unavailable.
 """
 import numpy as np
@@ -16,19 +16,22 @@ except ImportError:
 
 
 class _Autoencoder(nn.Module if TORCH_AVAILABLE else object):
-    """Encoder: input → 128 → 64 → 2 | Decoder: 2 → 64 → 128 → input"""
+    """
+    Encoder: input → 128 → 64 → latent
+    Decoder: latent → 64 → 128 → input
+    """
 
-    def __init__(self, input_dim: int):
+    def __init__(self, input_dim: int, latent_dim: int = 2):
         super().__init__()
         self.encoder = nn.Sequential(
             nn.Linear(input_dim, 128),
             nn.ReLU(),
             nn.Linear(128, 64),
             nn.ReLU(),
-            nn.Linear(64, 2),
+            nn.Linear(64, latent_dim),
         )
         self.decoder = nn.Sequential(
-            nn.Linear(2, 64),
+            nn.Linear(latent_dim, 64),
             nn.ReLU(),
             nn.Linear(64, 128),
             nn.ReLU(),
@@ -45,21 +48,23 @@ def fit_autoencoder(
     epochs: int = 30,
     batch_size: int = 256,
     lr: float = 1e-3,
+    latent_dim: int = 2,
     progress_callback=None,
 ) -> dict:
     """
-    Train autoencoder and return 2D embeddings.
+    Train autoencoder and return latent embeddings.
 
     Args:
         X               : (n, d) float32 feature matrix (should be standardized)
         epochs          : training epochs
         batch_size      : mini-batch size
         lr              : learning rate
+        latent_dim      : dimensionality of the compressed space (e.g. 2 or 3)
         progress_callback: optional callable(epoch, loss) for Streamlit progress
 
     Returns:
         {
-          "X_reduced":       (n, 2) numpy array — latent 2D embeddings,
+          "X_reduced":       (n, latent_dim) numpy array — latent embeddings,
           "loss_history":    list of per-epoch reconstruction loss,
           "final_loss":      float,
           "available":       True,
@@ -77,7 +82,7 @@ def fit_autoencoder(
     dataset = TensorDataset(tensor)
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-    model = _Autoencoder(X_f.shape[1])
+    model = _Autoencoder(X_f.shape[1], latent_dim=latent_dim)
     optimizer = optim.Adam(model.parameters(), lr=lr)
     criterion = nn.MSELoss()
 

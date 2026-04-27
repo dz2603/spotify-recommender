@@ -177,13 +177,21 @@ def page_recommendation():
 
         rows = []
         for rank, n in enumerate(neighbors, 1):
-            info = song_lookup.get(n["track_id"], {})
+            # n could be a dict (old format) or a string ID (new repo format)
+            if isinstance(n, dict):
+                nid = n.get("track_id")
+                score = f"{n['score']:.4f}" if "score" in n else "?"
+            else:
+                nid = n
+                score = "?"
+
+            info = song_lookup.get(nid, {})
             rows.append({
                 "Rank": rank,
                 "Track": info.get("track_name", "?"),
                 "Artist(s)": info.get("artists", "?"),
                 "Genre": info.get("track_genre", "?"),
-                "Cosine Score": f"{n['score']:.4f}",
+                "Cosine Score": score,
             })
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 

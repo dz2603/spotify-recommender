@@ -4,6 +4,7 @@ No sklearn neighbors used; only numpy for all similarity/distance computation.
 """
 import json
 import numpy as np
+import os
 from src.algorithms.kmeans import kmeans
 from src.data_preprocessing.datapreprocessing import build_weighted_feature_matrix
 from sklearn.preprocessing import normalize

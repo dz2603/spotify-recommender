@@ -34,7 +34,8 @@ def fit_gmm(
         max_iter=max_iter,
     )
     gmm.fit(X)
-
+    if not gmm.converged_:
+        print(f"Warning: GMM did not converge for k={k}, try increasing max_iter")
     proba = gmm.predict_proba(X)   # (n, k) — soft memberships
     labels = np.argmax(proba, axis=1)  # hard assignment for visualisation
 

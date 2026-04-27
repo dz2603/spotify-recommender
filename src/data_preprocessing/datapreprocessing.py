@@ -38,7 +38,7 @@ def build_weighted_feature_matrix(
     grouped = data.groupby("track_id", as_index=False).agg({
         "track_name": "first",
         "album_name": "first",
-        "popularity": "first",
+        "popularity": "max",
         "duration_ms": "first",
         "explicit": "first",
         "danceability": "mean",
@@ -58,7 +58,9 @@ def build_weighted_feature_matrix(
     })
 
     data = grouped.reset_index(drop=True)
-    data = data.drop_duplicates(subset="track_name", keep="first").reset_index(drop=True)
+    data["artists_str"] = data["artists"].apply(lambda x: ", ".join(x) if isinstance(x, list) else str(x))
+    data = data.drop_duplicates(subset=["track_name", "artists_str"], keep="first").reset_index(drop=True)
+    data = data.drop(columns=["artists_str"])
 
     num_features = [
         "duration_ms",

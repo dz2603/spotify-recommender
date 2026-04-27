@@ -163,23 +163,31 @@ def page_recommendation():
         return
 
     if len(idxs) > 1:
-        opts = [f"{data.iloc[i]['track_name']} — {data.iloc[i]['artists']}" for i in idxs[:20]]
+        idxs_sorted = sorted(idxs[:20], key=lambda i: data.iloc[i]['popularity'], reverse=True)
+        opts = [f"{data.iloc[i]['track_name']} — {data.iloc[i]['artists']}" for i in idxs_sorted]
         chosen = st.selectbox("Multiple matches — pick one:", opts)
-        query_idx = idxs[opts.index(chosen)]
+        query_idx = idxs_sorted[opts.index(chosen)]
     else:
         query_idx = idxs[0]
 
     ref_row = data.iloc[query_idx]
+    artists_str = ", ".join(ref_row['artists']) if isinstance(ref_row['artists'], list) else str(ref_row['artists'])
     st.success(
         f"🎧 Reference: **{ref_row['track_name']}** "
-        f"by *{ref_row['artists']}*"
+        f"by *{artists_str}*"
     )
     spotify_player(ref_row["track_id"], height=152)
 
-    from src.algorithms.knn import knn_query
-    with st.spinner("Computing neighbors…"):
-        results = knn_query(X_num, query_idx, k=k, metric=metric)
-
+    ref_track_id = ref_row["track_id"]
+    if tables_ok and ref_track_id in neighbor_lookup:
+        raw = neighbor_lookup[ref_track_id][:k]
+        results = [{"index": data[data["track_id"] == n["track_id"]].index[0], 
+                    "score": n["score"]} for n in raw]
+    else:
+        from src.algorithms.knn import knn_query
+        with st.spinner("Computing neighbors…"):
+            results = knn_query(X_num, query_idx, k=k, metric=metric)
+    
     rows = []
     score_col = "Similarity Score" if metric == "cosine" else "Distance"
     for rank, r in enumerate(results, 1):
@@ -488,6 +496,7 @@ def page_dim_reduction():
                     use_container_width=True,
                 )
 
+        if ae_available:
             st.markdown("---")
             st.subheader("📉 Autoencoder Training Loss")
             c3, c4 = st.columns([2, 1])
@@ -496,7 +505,8 @@ def page_dim_reduction():
             with c4:
                 st.metric("Final Reconstruction Loss", f"{ae_res['final_loss']:.6f}")
                 st.markdown(
-                    """
+
+"""
 **Architecture:**
 ```
 Encoder: d → 128 → 64 → 2

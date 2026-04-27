@@ -53,6 +53,8 @@ def _update_centroids(X: np.ndarray, labels: np.ndarray, k: int) -> np.ndarray:
         mask = labels == c
         if mask.sum() > 0:
             centroids[c] = X[mask].mean(axis=0)
+        else:
+            centroids[c] = X[np.random.randint(0, len(X))]  # reinitialize empty cluster
     return centroids
 
 

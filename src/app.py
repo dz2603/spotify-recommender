@@ -483,14 +483,14 @@ def page_dim_reduction():
             with c4:
                 st.metric("Final Reconstruction Loss", f"{ae_res['final_loss']:.6f}")
                 st.markdown(
-                    \"\"\"
+                    """
 **Architecture:**
 ```
 Encoder: d → 128 → 64 → 2
 Decoder: 2 → 64 → 128 → d
 Loss:    MSE
 ```
-\"\"\"
+"""
                 )
 
         # ── Analytical Insight ────────────────────────────────────────────

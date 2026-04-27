@@ -162,9 +162,6 @@ def build_lookup_tables(csv_path=r"data\dataset.csv", top_k=10):
             neighbor_lookup[track_id] = [
                 {
                     "track_id": data.iloc[j]["track_id"],
-                    "track_name": data.iloc[j]["track_name"],
-                    "artists": data.iloc[j]["artists"],
-                    "cluster": int(data.iloc[j]["cluster"]),
                     "score": round(float(row[j]), 6),
                 }
                 for j in top_k_idx

@@ -24,12 +24,25 @@ def _init_centroids(X: np.ndarray, k: int, random_state: int = 42) -> np.ndarray
     return np.array(centroids)
 
 
-def _assign_labels(X: np.ndarray, centroids: np.ndarray) -> np.ndarray:
-    """Assign each point to its nearest centroid (pure numpy, vectorized)."""
-    # (n, k): squared Euclidean distance to each centroid
-    diff = X[:, np.newaxis, :] - centroids[np.newaxis, :, :]   # (n, k, d)
-    sq_dists = np.einsum("nkd,nkd->nk", diff, diff)            # (n, k)
-    return np.argmin(sq_dists, axis=1)                          # (n,)
+def _assign_labels(X, centroids, batch_size=500):
+    n = X.shape[0]
+    labels = np.empty(n, dtype=np.int32)
+
+    for start in range(0, n, batch_size):
+        end = min(start + batch_size, n)
+
+        X_batch = X[start:end]
+
+        # distances shape: (batch_size, k)
+        distances = np.empty((end - start, centroids.shape[0]), dtype=np.float32)
+
+        for c in range(centroids.shape[0]):
+            diff = X_batch - centroids[c]
+            distances[:, c] = np.sum(diff * diff, axis=1)
+
+        labels[start:end] = np.argmin(distances, axis=1)
+
+    return labels                  # (n,)
 
 
 def _update_centroids(X: np.ndarray, labels: np.ndarray, k: int) -> np.ndarray:

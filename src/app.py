@@ -25,6 +25,7 @@ import json
 import numpy as np
 import pandas as pd
 import streamlit as st
+from typing import Optional
 
 # ---------------------------------------------------------------------------
 # Page config
@@ -58,7 +59,7 @@ with st.sidebar:
 # ---------------------------------------------------------------------------
 
 @st.cache_data(show_spinner="Loading dataset…")
-def load_data(sample_n: int | None = None, random_state: int = 42):
+def load_data(sample_n: Optional[int] = None, random_state: int = 42):
     """
     Returns (data_df, X_dense, feature_cols).
     X_dense: standardized numeric audio features only (for clustering / dim-red).

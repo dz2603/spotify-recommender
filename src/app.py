@@ -415,7 +415,7 @@ def page_dim_reduction():
         )
         cumvar = pca_sweep["cumulative"]
         st.caption(
-            f"Top 2 PCs explain **{pca_2d['cumulative_variance']*100:.1f}%** of variance. "
+            f"Top {n_viz} PCs explain **{pca_res['cumulative_variance']*100:.1f}%** of variance. "
             f"First {n_pca_components} PCs explain **{cumvar[-1]*100:.1f}%**."
         )
 

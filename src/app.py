@@ -126,124 +126,52 @@ def page_recommendation():
         help="Cosine: angle-based (ignores magnitude). Euclidean: straight-line distance.",
     )
 
-    feature_set = st.selectbox(
-        "Feature set used for similarity",
-        ["full (audio + genre + artist)", "audio only (numeric features)"],
-        help="'full' uses pre-computed lookup table. 'audio only' runs KNN from scratch on numeric features.",
-    )
-
     st.markdown("---")
 
     if not query:
         st.info("Type a song name above to get recommendations.")
         return
 
-    # --- Strategy A: pre-computed lookup (full feature set, cosine only) ---
-    use_precomputed_lookup = (
-        feature_set.startswith("full")
-        and metric == "cosine"
-        and tables_ok
-        and k <= precomputed_k
-    )
-    if use_precomputed_lookup:
-        # find matching track ids
-        matches = [
-            (tid, info)
-            for tid, info in song_lookup.items()
-            if query.lower() in info["track_name"].lower()
-        ]
-        if not matches:
-            st.warning(f"No songs found matching **{query}**. Try a different title.")
-            return
+    # --- Live KNN on numeric features ---
+    data, X_num, feat_cols, _ = load_data(sample_n=None)
+    name_col = data["track_name"].str.lower()
+    idxs = name_col[name_col.str.contains(query.lower(), na=False)].index.tolist()
 
-        # pick best match
-        if len(matches) > 1:
-            names = [f"{m[1]['track_name']} — {m[1]['artists']}" for m in matches]
-            chosen = st.selectbox("Multiple matches found — pick one:", names)
-            idx_chosen = names.index(chosen)
-        else:
-            idx_chosen = 0
+    if not idxs:
+        st.warning(f"No songs found matching **{query}**.")
+        return
 
-        ref_id, ref_info = matches[idx_chosen]
-        ref_artists = ", ".join(ref_info['artists']) if isinstance(ref_info['artists'], list) else ref_info['artists']
-        ref_genre = ", ".join(ref_info['track_genre']) if isinstance(ref_info['track_genre'], list) else ref_info['track_genre']
-        st.success(
-            f"🎧 Reference: **{ref_info['track_name']}** "
-            f"by *{ref_artists}* — genre: {ref_genre}"
-        )
-
-        neighbors = neighbor_lookup.get(ref_id, [])[:k]
-        if not neighbors:
-            st.error("No neighbors found for this track.")
-            return
-
-        rows = []
-        for rank, n in enumerate(neighbors, 1):
-            # n could be a dict (old format) or a string ID (new repo format)
-            if isinstance(n, dict):
-                nid = n.get("track_id")
-                score = f"{n['score']:.4f}" if "score" in n else "?"
-            else:
-                nid = n
-                score = "?"
-
-            info = song_lookup.get(nid, {})
-            artists = info.get("artists", "?")
-            if isinstance(artists, list): artists = ", ".join(artists)
-            genre = info.get("track_genre", "?")
-            if isinstance(genre, list): genre = ", ".join(genre)
-
-            rows.append({
-                "Rank": rank,
-                "Track": info.get("track_name", "?"),
-                "Artist(s)": artists,
-                "Genre": genre,
-                "Cosine Score": score,
-            })
-        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-
-    # --- Strategy B: from-scratch KNN on numeric features (or euclidean) ---
+    if len(idxs) > 1:
+        opts = [f"{data.iloc[i]['track_name']} — {data.iloc[i]['artists']}" for i in idxs[:20]]
+        chosen = st.selectbox("Multiple matches — pick one:", opts)
+        query_idx = idxs[opts.index(chosen)]
     else:
+        query_idx = idxs[0]
 
-        data, X_num, feat_cols, _ = load_data(sample_n=None)
-        name_col = data["track_name"].str.lower()
-        idxs = name_col[name_col.str.contains(query.lower(), na=False)].index.tolist()
+    ref_row = data.iloc[query_idx]
+    st.success(
+        f"🎧 Reference: **{ref_row['track_name']}** "
+        f"by *{ref_row['artists']}*"
+    )
 
-        if not idxs:
-            st.warning(f"No songs found matching **{query}**.")
-            return
+    from src.algorithms.knn import knn_query
+    with st.spinner("Computing neighbors…"):
+        results = knn_query(X_num, query_idx, k=k, metric=metric)
 
-        if len(idxs) > 1:
-            opts = [f"{data.iloc[i]['track_name']} — {data.iloc[i]['artists']}" for i in idxs[:20]]
-            chosen = st.selectbox("Multiple matches — pick one:", opts)
-            query_idx = idxs[opts.index(chosen)]
-        else:
-            query_idx = idxs[0]
+    rows = []
+    for rank, r in enumerate(results, 1):
+        row = data.iloc[r["index"]]
+        rows.append({
+            "Rank": rank,
+            "Track": row["track_name"],
+            "Artist(s)": row["artists"],
+            "Score": f"{r['score']:.4f}",
+        })
+    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
-        ref_row = data.iloc[query_idx]
-        st.success(
-            f"🎧 Reference: **{ref_row['track_name']}** "
-            f"by *{ref_row['artists']}*"
-        )
-
-        from src.algorithms.knn import knn_query
-        with st.spinner("Computing neighbors…"):
-            results = knn_query(X_num, query_idx, k=k, metric=metric)
-
-        rows = []
-        for rank, r in enumerate(results, 1):
-            row = data.iloc[r["index"]]
-            rows.append({
-                "Rank": rank,
-                "Track": row["track_name"],
-                "Artist(s)": row["artists"],
-                "Score": f"{r['score']:.4f}",
-            })
-        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-
-        with st.expander("ℹ️ How KNN from scratch works"):
-            st.markdown(
-                """
+    with st.expander("ℹ️ How KNN from scratch works"):
+        st.markdown(
+            """
 **Cosine similarity** (from scratch):
 1. L2-normalise every row: `X_norm = X / ||X||`
 2. Query similarity: `sim = X_norm @ X_norm[query_idx]`
@@ -254,7 +182,7 @@ def page_recommendation():
 2. `dist = sqrt(einsum("ij,ij->i", diff, diff))`
 3. Return K smallest distances
 """
-            )
+        )
 
 
 def profile_clusters(X_num: np.ndarray, labels: np.ndarray, feat_cols: list[str]) -> dict:

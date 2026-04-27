@@ -173,9 +173,12 @@ def build_lookup_tables(csv_path=r"data\dataset.csv", top_k=10):
 
 
 if __name__ == "__main__":
-    song_lookup, neighbor_lookup = build_lookup_tables()
-    with open("song_lookup.json", "w", encoding="utf-8") as f:
+    song_lookup, neighbor_lookup = build_lookup_tables(csv_path="data/dataset.csv")
+    output_dir = "results/sample_recommendations"
+    os.makedirs(output_dir, exist_ok=True)
+    
+    with open(os.path.join(output_dir, "song_lookup.json"), "w", encoding="utf-8") as f:
         json.dump(song_lookup, f, ensure_ascii=False)
-    with open("neighbor_lookup.json", "w", encoding="utf-8") as f:
+    with open(os.path.join(output_dir, "neighbor_lookup.json"), "w", encoding="utf-8") as f:
         json.dump(neighbor_lookup, f, ensure_ascii=False)
-    print("Saved song_lookup.json and neighbor_lookup.json")
+    print(f"Saved lookup tables to {output_dir}")

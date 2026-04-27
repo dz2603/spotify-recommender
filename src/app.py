@@ -165,9 +165,11 @@ def page_recommendation():
             idx_chosen = 0
 
         ref_id, ref_info = matches[idx_chosen]
+        ref_artists = ", ".join(ref_info['artists']) if isinstance(ref_info['artists'], list) else ref_info['artists']
+        ref_genre = ", ".join(ref_info['track_genre']) if isinstance(ref_info['track_genre'], list) else ref_info['track_genre']
         st.success(
             f"🎧 Reference: **{ref_info['track_name']}** "
-            f"by *{ref_info['artists']}* — genre: {ref_info['track_genre']}"
+            f"by *{ref_artists}* — genre: {ref_genre}"
         )
 
         neighbors = neighbor_lookup.get(ref_id, [])[:k]
@@ -186,11 +188,16 @@ def page_recommendation():
                 score = "?"
 
             info = song_lookup.get(nid, {})
+            artists = info.get("artists", "?")
+            if isinstance(artists, list): artists = ", ".join(artists)
+            genre = info.get("track_genre", "?")
+            if isinstance(genre, list): genre = ", ".join(genre)
+
             rows.append({
                 "Rank": rank,
                 "Track": info.get("track_name", "?"),
-                "Artist(s)": info.get("artists", "?"),
-                "Genre": info.get("track_genre", "?"),
+                "Artist(s)": artists,
+                "Genre": genre,
                 "Cosine Score": score,
             })
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)

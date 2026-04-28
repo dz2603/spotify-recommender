@@ -1,6 +1,6 @@
 # 🎵 Spotify Recommender System
 
-A machine learning project that explores music similarity, clustering, and low-dimensional views of songs using a Spotify-style audio features dataset. The deliverable is a **local Streamlit web app** (`src/app.py`): you pick a song, get KNN recommendations with optional Spotify previews, then explore clustering, PCA vs. autoencoder embeddings, and basic dataset stats in the sidebar.
+A machine learning project that explores music similarity, clustering, and low-dimensional views of songs using a Spotify-style audio features dataset. The deliverable is a **local Streamlit web app** (`src/app.py`): you pick a song, get KNN recommendations with optional Spotify previews, then explore clustering, PCA vs. autoencoder embeddings, recommendation evaluation metrics, and dataset stats in the sidebar.
 
 ---
 
@@ -26,6 +26,9 @@ A machine learning project that explores music similarity, clustering, and low-d
 
 ### 5. **Dataset Info**
 - **Overview tab**: Row/column counts, missing values, per-column dtypes, and a small preview table so the raw data is easy to inspect without leaving the app.
+
+### 6. **Recommendation Evaluation**
+- **Sanity-check metrics**: Evaluate recommendation behavior over multiple reference songs with interpretable metrics such as same-genre rate, same-artist rate, average popularity, popularity gap, and feature-space diversity.
 
 ---
 

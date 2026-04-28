@@ -3,7 +3,6 @@ KNN from scratch — pure numpy implementation.
 No sklearn neighbors used; only numpy for all similarity/distance computation.
 """
 import json
-import os
 import numpy as np
 import os
 from src.algorithms.kmeans import kmeans

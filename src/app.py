@@ -43,9 +43,9 @@ st.set_page_config(
 # ---------------------------------------------------------------------------
 PAGES = [
     "🎵 Song Recommendation",
+    "✏️ Recommendation Evaluation",
     "📊 Clustering",
     "🔍 Dimensionality Reduction",
-    "🧪 Recommendation Evaluation",
     "🗂️ Dataset Info",
 ]
 
@@ -636,7 +636,9 @@ def page_recommendation_evaluation():
     # Compute recommendations using the same logic as the main recommendation page
     ref_track_id = ref_row["track_id"]
 
-    if tables_ok and ref_track_id in neighbor_lookup and metric == "cosine":
+    precomputed_k_eval = len(next(iter(neighbor_lookup.values()), [])) if tables_ok else 0
+
+    if tables_ok and ref_track_id in neighbor_lookup and metric == "cosine" and k <= precomputed_k_eval:
         raw = neighbor_lookup[ref_track_id][:k]
 
         results = []
@@ -754,10 +756,10 @@ def page_recommendation_evaluation():
 if page == PAGES[0]:
     page_recommendation()
 elif page == PAGES[1]:
-    page_clustering()
-elif page == PAGES[2]:
-    page_dim_reduction()
-elif page == PAGES[3]:
     page_recommendation_evaluation()
+elif page == PAGES[2]:
+    page_clustering()
+elif page == PAGES[3]:
+    page_dim_reduction()
 elif page == PAGES[4]:
     page_dataset_info()

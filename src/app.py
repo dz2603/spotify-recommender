@@ -180,7 +180,7 @@ def page_recommendation():
     spotify_player(ref_row["track_id"], height=152)
 
     ref_track_id = ref_row["track_id"]
-    if tables_ok and ref_track_id in neighbor_lookup and metric == "cosine":
+    if tables_ok and ref_track_id in neighbor_lookup and metric == "cosine" and k <= precomputed_k:
         raw = neighbor_lookup[ref_track_id][:k]
         results = [{"index": data[data["track_id"] == n["track_id"]].index[0], 
                     "score": n["score"]} for n in raw]

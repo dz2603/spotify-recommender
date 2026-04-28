@@ -5,6 +5,7 @@ No sklearn neighbors used; only numpy for all similarity/distance computation.
 import json
 import numpy as np
 import os
+from scipy import sparse
 from src.algorithms.kmeans import kmeans
 from src.data_preprocessing.datapreprocessing import build_weighted_feature_matrix
 from sklearn.preprocessing import normalize
@@ -23,7 +24,10 @@ def cosine_similarity_row(X_norm: np.ndarray, query_idx: int) -> np.ndarray:
     X_norm must already be L2-normalised.
     Returns shape (n,) similarity scores in [-1, 1].
     """
-    return X_norm @ X_norm[query_idx]  # dot product of normalized vectors
+    sims = X_norm @ X_norm[query_idx].T
+    if sparse.issparse(sims):
+        return sims.toarray().ravel()
+    return np.asarray(sims).ravel()
 
 
 def euclidean_distance_row(X: np.ndarray, query_idx: int) -> np.ndarray:

@@ -46,7 +46,7 @@ def page_recommendation_evaluation():
         st.info("Type a song name above to evaluate its recommendations.")
         return
 
-    data, X_num, feat_cols, _ = load_data(sample_n=None)
+    data, X_num, feat_cols, X_weighted = load_data(sample_n=None)
 
     query_idx = resolve_song_query(data, query)
     if query_idx is None:
@@ -59,6 +59,7 @@ def page_recommendation_evaluation():
     results = get_recommendation_results(
         data=data,
         X_num=X_num,
+        X_weighted=X_weighted,
         query_idx=query_idx,
         k=k,
         metric=metric,

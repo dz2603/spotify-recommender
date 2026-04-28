@@ -4,7 +4,10 @@ from typing import Optional
 
 import numpy as np
 import streamlit as st
+from scipy.sparse import hstack
+from sklearn.preprocessing import OneHotEncoder
 
+from src.algorithms.kmeans import kmeans
 from src.algorithms.knn import knn_query
 from src.ui import theme
 
@@ -13,6 +16,7 @@ SRC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPO = os.path.dirname(SRC)
 DATA_DIR = os.path.join(REPO, "data")
 RESULTS_DIR = os.path.join(REPO, "results", "sample_recommendations")
+RECOMMENDER_RECIPE_VERSION = "precomputed-style-v2-genre1.0-cluster20"
 
 
 @st.cache_data(show_spinner="Loading dataset...")
@@ -28,7 +32,7 @@ def load_data(sample_n: Optional[int] = None, random_state: int = 42):
         csv_path=csv_path,
         base_weight=1.0,
         explicit_weight=0.5,
-        genre_weight=1.5,
+        genre_weight=1.0,
         artist_weight=1.25,
     )
     num_features = pipeline["num_features"]
@@ -54,6 +58,51 @@ def load_lookup_tables():
     with open(nl_path, encoding="utf-8") as f:
         neighbor_lookup = json.load(f)
     return song_lookup, neighbor_lookup, True
+
+
+@st.cache_data(show_spinner="Building cluster-aware recommendation matrix...")
+def build_precomputed_style_matrix(
+    _data,
+    _X_weighted,
+    cluster_k: int = 20,
+    cluster_weight: float = 1.0,
+    recipe_version: str = RECOMMENDER_RECIPE_VERSION,
+):
+    """
+    Emulate the precomputed recommendation feature matrix live.
+
+    Recipe matches `build_lookup_tables`: start with the weighted sparse feature
+    matrix, run K-Means on raw audio columns, then append one-hot cluster labels.
+
+    recipe_version intentionally participates in Streamlit's cache key. The
+    dataframe and sparse matrix args are underscore-prefixed because they are
+    expensive/problematic to hash directly.
+    """
+    _ = recipe_version
+    audio_cols = [
+        "duration_ms",
+        "popularity",
+        "danceability",
+        "energy",
+        "key",
+        "loudness",
+        "mode",
+        "speechiness",
+        "acousticness",
+        "instrumentalness",
+        "liveness",
+        "valence",
+        "tempo",
+        "time_signature",
+    ]
+    X_dense_for_kmeans = _data[audio_cols].to_numpy(dtype=np.float32)
+    kmeans_result = kmeans(X_dense_for_kmeans, k=cluster_k)
+    clusters = kmeans_result["labels"]
+
+    encoder = OneHotEncoder(sparse_output=True)
+    cluster_feature = encoder.fit_transform(clusters.reshape(-1, 1)) * cluster_weight
+    X_with_cluster = hstack([_X_weighted.astype(np.float32), cluster_feature]).tocsr()
+    return X_with_cluster, clusters
 
 
 def spotify_player(track_id: str, height: int = 80):
@@ -124,6 +173,7 @@ def resolve_song_query(data, query: str, selectbox_label: str = "Multiple matche
 def get_recommendation_results(
     data,
     X_num: np.ndarray,
+    X_weighted,
     query_idx: int,
     k: int,
     metric: str,
@@ -133,12 +183,37 @@ def get_recommendation_results(
     """
     Return recommendation result dicts with `index` and `score`.
 
-    Uses live KNN for interactive consistency. This guarantees K=15 extends the
-    same ranking used for K=10 instead of switching between precomputed and live
-    feature spaces.
+    Cosine uses the precomputed JSON lookup when it has enough neighbors for K.
+    For larger K, it falls back to the same live feature recipe:
+    weighted matrix + K-Means cluster one-hot feature. Euclidean stays on the
+    numeric feature matrix because the augmented sparse matrix is not meaningful
+    for straight-line distance.
     """
+    X_query = X_num
+    if metric == "cosine":
+        ref_track_id = data.iloc[query_idx]["track_id"]
+        precomputed_k = len(next(iter(neighbor_lookup.values()), [])) if tables_ok else 0
+        if (
+            tables_ok
+            and neighbor_lookup
+            and ref_track_id in neighbor_lookup
+            and k <= precomputed_k
+        ):
+            results = []
+            for n in neighbor_lookup[ref_track_id][:k]:
+                matched = data[data["track_id"] == n["track_id"]]
+                if not matched.empty:
+                    results.append({"index": matched.index[0], "score": n["score"]})
+            return results
+
+        X_query, _ = build_precomputed_style_matrix(
+            data,
+            X_weighted,
+            recipe_version=RECOMMENDER_RECIPE_VERSION,
+        )
+
     with st.spinner("Computing neighbors..."):
-        return knn_query(X_num, query_idx, k=k, metric=metric)
+        return knn_query(X_query, query_idx, k=k, metric=metric)
 
 
 def profile_clusters(X_num: np.ndarray, labels: np.ndarray, feat_cols: list[str]) -> dict:

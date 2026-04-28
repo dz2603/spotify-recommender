@@ -25,6 +25,9 @@ def page_recommendation():
         query = st.text_input("Search for a song", placeholder="e.g. Gangnam Style")
     with col2:
         k = st.slider("Number of recommendations (K)", 5, 20, 10)
+        st.caption(
+            "K > 10 may build the larger cluster-aware recommendation matrix on first run."
+        )
 
     metric = st.radio(
         "Similarity metric",
@@ -39,7 +42,7 @@ def page_recommendation():
         st.info("Type a song name above to get recommendations.")
         return
 
-    data, X_num, feat_cols, _ = load_data(sample_n=None)
+    data, X_num, feat_cols, X_weighted = load_data(sample_n=None)
     query_idx = resolve_song_query(data, query)
     if query_idx is None:
         st.warning(f"No songs found matching **{query}**.")
@@ -51,6 +54,7 @@ def page_recommendation():
     results = get_recommendation_results(
         data=data,
         X_num=X_num,
+        X_weighted=X_weighted,
         query_idx=query_idx,
         k=k,
         metric=metric,

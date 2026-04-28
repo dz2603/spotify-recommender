@@ -1,11 +1,11 @@
 """
 Spotify Recommender — Streamlit App
-Five pages:
-  1. 🎵 Song Recommendation  (KNN with cosine/euclidean options)
-  2. 📊 Clustering           (K-Means vs GMM with quality metrics)
-  3. 🔍 Dimensionality Reduction (PCA vs Autoencoder, 2D view)
-  4. ⚙️ Parameter Explorer   (compare recommendation quality across settings)
-  5. 🗂️ Dataset Info         (basic dataset stats and preview)
+
+Four pages (see PAGES in the sidebar router):
+  1. 🎵 Song Recommendation — KNN recommendations (cosine / euclidean)
+  2. 📊 Clustering — K-Means vs GMM, metrics and plots
+  3. 🔍 Dimensionality Reduction — PCA vs autoencoder embeddings
+  4. 🗂️ Dataset Info — table shape, column summary, sample rows
 """
 import sys
 import os

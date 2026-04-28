@@ -2,7 +2,6 @@ import os
 import numpy as np
 import pandas as pd
 
-from sklearn.preprocessing import StandardScaler
 from scipy.sparse import hstack, csr_matrix
 from sklearn.preprocessing import StandardScaler, MultiLabelBinarizer
 

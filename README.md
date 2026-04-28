@@ -1,6 +1,6 @@
 # 🎵 Spotify Recommender System
 
-A professional machine learning project exploring music similarity, clustering patterns, and latent space representations using a Spotify audio features dataset. Built as a comprehensive demonstration of core data science algorithms.
+A machine learning project that explores music similarity, clustering, and low-dimensional views of songs using a Spotify-style audio features dataset. The deliverable is a **local Streamlit web app** (`src/app.py`): you pick a song, get KNN recommendations with optional Spotify previews, then explore clustering, PCA vs. autoencoder embeddings, and basic dataset stats in the sidebar.
 
 ---
 
@@ -24,6 +24,9 @@ A professional machine learning project exploring music similarity, clustering p
 - **3D Projections**: Toggle between 2D and **Interactive 3D Scatter Plots** to explore high-dimensional data clouds.
 - **Scientific Explanations**: The UI includes professional notes on **Feature Standardization** and the mathematical nature of continuous musical spectrums.
 
+### 5. **Dataset Info**
+- **Overview tab**: Row/column counts, missing values, per-column dtypes, and a small preview table so the raw data is easy to inspect without leaving the app.
+
 ---
 
 ## 🛠️ Technical Highlights
@@ -42,7 +45,8 @@ All numeric features (Tempo, Energy, Loudness, etc.) are processed through a **S
 ## 📂 Project Structure
 ```text
 spotify-recommender/
-├── data/               # Dataset storage
+├── data/               # Dataset (e.g. dataset.csv)
+├── results/            # Optional precomputed lookups for fast cosine KNN
 ├── src/
 │   ├── algorithms/     # ML implementations (KNN, K-Means, GMM, PCA, AE)
 │   ├── visualization/  # Plotly-based graph generation
@@ -68,11 +72,10 @@ spotify-recommender/
    pip install -r requirements.txt
    ```
 
-3. **Run the Application**:
+3. **Run the web app** (from the repository root, with the venv activated):
    ```bash
    python3 -m streamlit run src/app.py
    ```
-
 ---
 
 ## 📊 Dataset Reference

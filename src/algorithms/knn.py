@@ -59,19 +59,17 @@ def knn_query(
         cosine; lower = closer for euclidean — we negate for consistency).
     """
     n = X.shape[0]
+    k = min(k, max(n - 1, 0))
     if metric == "cosine":
         X_norm = normalize(X, norm="l2", axis=1)
         scores = cosine_similarity_row(X_norm, query_idx)
         scores[query_idx] = -2.0  # exclude self
-        top_idx = np.argpartition(scores, -(k + 1))[-(k + 1):]
-        top_idx = top_idx[np.argsort(-scores[top_idx])]
-        top_idx = top_idx[top_idx != query_idx][:k]
+        top_idx = np.argsort(-scores)[:k]
         return [{"index": int(i), "score": float(scores[i])} for i in top_idx]
     elif metric == "euclidean":
         dists = euclidean_distance_row(X, query_idx)
         dists[query_idx] = 1e18  # exclude self
-        top_idx = np.argpartition(dists, k)[:k]
-        top_idx = top_idx[np.argsort(dists[top_idx])]
+        top_idx = np.argsort(dists)[:k]
         return [{"index": int(i), "score": float(dists[i])} for i in top_idx]
     else:
         raise ValueError(f"Unknown metric: {metric}. Use 'cosine' or 'euclidean'.")

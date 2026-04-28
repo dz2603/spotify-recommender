@@ -2,13 +2,14 @@ import numpy as np
 import streamlit as st
 
 from src.ui.common import load_data, profile_clusters
+from src.ui.components import divider, page_header, render_metric_cards
 
 
 def page_clustering():
-    st.header("📊 Clustering: K-Means vs GMM")
-    st.markdown(
+    page_header(
+        "📊 Clustering: K-Means vs GMM",
         "Compare **hard clustering** (K-Means, each song → one cluster) "
-        "vs **soft clustering** (GMM, each song → probability over clusters)."
+        "vs **soft clustering** (GMM, each song → probability over clusters).",
     )
 
     col1, col2, col3 = st.columns(3)
@@ -24,7 +25,7 @@ def page_clustering():
             "Show clusters in 3D", value=False, help="Use 3 PCA components for visualization"
         )
 
-    st.markdown("---")
+    divider()
 
     if st.button("▶ Run Clustering", type="primary"):
         data, X_num, feat_cols, _ = load_data(sample_n=sample_n)
@@ -58,11 +59,14 @@ def page_clustering():
         gm_db = davies_bouldin(X_num, gmm_res["labels"])
 
         st.subheader("📐 Cluster Quality Metrics")
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("K-Means Silhouette ↑", f"{km_sil:.4f}")
-        m2.metric("K-Means Davies-Bouldin ↓", f"{km_db:.4f}")
-        m3.metric("GMM Silhouette ↑", f"{gm_sil:.4f}")
-        m4.metric("GMM Davies-Bouldin ↓", f"{gm_db:.4f}")
+        render_metric_cards(
+            [
+                ("K-Means Silhouette ↑", f"{km_sil:.4f}"),
+                ("K-Means Davies-Bouldin ↓", f"{km_db:.4f}"),
+                ("GMM Silhouette ↑", f"{gm_sil:.4f}"),
+                ("GMM Davies-Bouldin ↓", f"{gm_db:.4f}"),
+            ]
+        )
 
         km_profiles = profile_clusters(X_num, km_res["labels"], feat_cols)
         gm_profiles = profile_clusters(X_num, gmm_res["labels"], feat_cols)
@@ -128,7 +132,7 @@ def page_clustering():
             use_container_width=True,
         )
 
-        st.markdown("---")
+        divider()
         st.subheader("💡 Insight: Why do K-Means & GMM yield low Silhouette scores?")
         st.info(
             "**1. Music is a Continuous Spectrum:** Unlike textbook datasets (where clusters look like distinct islands), music transitions smoothly. You can gradually shift from a quiet lullaby to a high-energy dance track. There are no 'empty gaps' in audio feature space.\n\n"

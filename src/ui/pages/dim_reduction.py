@@ -1,13 +1,14 @@
 import streamlit as st
 
 from src.ui.common import load_data, profile_clusters
+from src.ui.components import divider, page_header
 
 
 def page_dim_reduction():
-    st.header("🔍 Dimensionality Reduction: PCA vs Autoencoder")
-    st.markdown(
+    page_header(
+        "🔍 Dimensionality Reduction: PCA vs Autoencoder",
         "Both methods compress high-dimensional song vectors to **2D or 3D** for visualization. "
-        "PCA is linear; the Autoencoder can capture non-linear structure."
+        "PCA is linear; the Autoencoder can capture non-linear structure.",
     )
 
     col1, col2, col3 = st.columns(3)
@@ -84,7 +85,7 @@ def page_dim_reduction():
             f"First {n_pca_components} PCs explain **{cumvar[-1]*100:.1f}%**."
         )
 
-        st.markdown("---")
+        divider()
         viz_title = f"{n_viz}D Embedding Visualizations"
         st.subheader(f"🗺️ {viz_title}")
         st.markdown(
@@ -143,7 +144,7 @@ def page_dim_reduction():
                 )
 
         if ae_available:
-            st.markdown("---")
+            divider()
             st.subheader("📉 Autoencoder Training Loss")
             c3, c4 = st.columns([2, 1])
             with c3:
@@ -151,7 +152,7 @@ def page_dim_reduction():
             with c4:
                 st.metric("Final Reconstruction Loss", f"{ae_res['final_loss']:.6f}")
 
-        st.markdown("---")
+        divider()
         st.subheader("💡 What does this prove for our recommendation engine?")
         st.info(
             "**1. Music is Highly Dimensional:** Look at the PCA Explained Variance chart. In standard datasets, the first 2 components might explain 80% to 90% of the variance. Here, they only explain about 33%. We would need 10 components just to capture ~89% of the information. This mathematically proves that audio features (Energy, Acousticness, Tempo, etc.) are highly complex and largely independent.\n\n"

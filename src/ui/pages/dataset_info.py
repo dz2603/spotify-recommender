@@ -3,11 +3,14 @@ import pandas as pd
 import streamlit as st
 
 from src.ui.common import load_data
+from src.ui.components import divider, page_header, render_metric_cards
 
 
 def page_dataset_info():
-    st.header("🗂️ Dataset Information")
-    st.markdown("Quick overview of the dataset used across all app pages.")
+    page_header(
+        "🗂️ Dataset Information",
+        "Quick overview of the dataset used across all app pages.",
+    )
 
     data, X_num, feat_cols, _ = load_data(sample_n=None)
 
@@ -16,13 +19,16 @@ def page_dataset_info():
     n_non_numeric = n_cols - n_numeric
     n_missing = int(data.isna().sum().sum())
 
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Rows", f"{n_rows:,}")
-    m2.metric("Columns", f"{n_cols:,}")
-    m3.metric("Missing Values", f"{n_missing:,}")
-    m4.metric("Numeric Features", f"{n_numeric:,}")
+    render_metric_cards(
+        [
+            ("Rows", f"{n_rows:,}"),
+            ("Columns", f"{n_cols:,}"),
+            ("Missing Values", f"{n_missing:,}"),
+            ("Numeric Features", f"{n_numeric:,}"),
+        ]
+    )
 
-    st.markdown("---")
+    divider()
     st.subheader("Column Summary")
     summary_df = pd.DataFrame(
         {
@@ -34,7 +40,7 @@ def page_dataset_info():
     )
     st.dataframe(summary_df, hide_index=True, use_container_width=True)
 
-    st.markdown("---")
+    divider()
     st.subheader("Sample Rows")
     st.dataframe(data.head(20), hide_index=True, use_container_width=True)
 

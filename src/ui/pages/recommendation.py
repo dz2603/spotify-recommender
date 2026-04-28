@@ -1,20 +1,21 @@
 import pandas as pd
 import streamlit as st
 
-from src.algorithms.knn import knn_query
 from src.ui.common import (
     explain_recommendation_features,
+    get_recommendation_results,
     load_data,
     load_lookup_tables,
-    spotify_player,
+    resolve_song_query,
 )
+from src.ui.components import divider, page_header, render_reference_track, render_spotify_grid
 
 
 def page_recommendation():
-    st.header("🎵 Song Recommendation")
-    st.markdown(
+    page_header(
+        "🎵 Song Recommendation",
         "Find songs similar to a reference track using **KNN** with "
-        "cosine or Euclidean distance on audio features."
+        "cosine or Euclidean distance on audio features.",
     )
 
     _, neighbor_lookup, tables_ok = load_lookup_tables()
@@ -32,53 +33,30 @@ def page_recommendation():
         help="Cosine: angle-based (ignores magnitude). Euclidean: straight-line distance.",
     )
 
-    st.markdown("---")
+    divider()
 
     if not query:
         st.info("Type a song name above to get recommendations.")
         return
 
     data, X_num, feat_cols, _ = load_data(sample_n=None)
-    name_col = data["track_name"].str.lower()
-    idxs = name_col[name_col.str.contains(query.lower(), na=False)].index.tolist()
-
-    if not idxs:
+    query_idx = resolve_song_query(data, query)
+    if query_idx is None:
         st.warning(f"No songs found matching **{query}**.")
         return
 
-    if len(idxs) > 1:
-        idxs_sorted = sorted(idxs[:20], key=lambda i: data.iloc[i]["popularity"], reverse=True)
-        opts = [f"{data.iloc[i]['track_name']} — {data.iloc[i]['artists']}" for i in idxs_sorted]
-        chosen = st.selectbox("Multiple matches — pick one:", opts)
-        query_idx = idxs_sorted[opts.index(chosen)]
-    else:
-        query_idx = idxs[0]
-
     ref_row = data.iloc[query_idx]
-    artists_str = (
-        ", ".join(ref_row["artists"])
-        if isinstance(ref_row["artists"], list)
-        else str(ref_row["artists"])
-    )
-    st.success(f"🎧 Reference: **{ref_row['track_name']}** by *{artists_str}*")
-    spotify_player(ref_row["track_id"], height=152)
+    render_reference_track(ref_row)
 
-    ref_track_id = ref_row["track_id"]
-    precomputed_k = len(next(iter(neighbor_lookup.values()), [])) if tables_ok else 0
-    if (
-        tables_ok
-        and ref_track_id in neighbor_lookup
-        and metric == "cosine"
-        and k <= precomputed_k
-    ):
-        raw = neighbor_lookup[ref_track_id][:k]
-        results = [
-            {"index": data[data["track_id"] == n["track_id"]].index[0], "score": n["score"]}
-            for n in raw
-        ]
-    else:
-        with st.spinner("Computing neighbors..."):
-            results = knn_query(X_num, query_idx, k=k, metric=metric)
+    results = get_recommendation_results(
+        data=data,
+        X_num=X_num,
+        query_idx=query_idx,
+        k=k,
+        metric=metric,
+        neighbor_lookup=neighbor_lookup,
+        tables_ok=tables_ok,
+    )
 
     rows = []
     explanation_details = []
@@ -127,13 +105,7 @@ def page_recommendation():
                 use_container_width=True,
             )
 
-    st.markdown("### ⏯️ Listen to Recommendations")
-    cols = st.columns(2)
-    for i, r in enumerate(results):
-        with cols[i % 2]:
-            row = data.iloc[r["index"]]
-            st.caption(f"#{i + 1}: {row['track_name']} — {row['artists']}")
-            spotify_player(row["track_id"], height=80)
+    render_spotify_grid(data, results)
 
     with st.expander("ℹ️ How KNN from scratch works"):
         st.markdown(

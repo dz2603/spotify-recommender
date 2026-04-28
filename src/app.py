@@ -18,6 +18,7 @@ REPO = os.path.dirname(SRC)
 if REPO not in sys.path:
     sys.path.insert(0, REPO)
 
+from src.ui import theme
 from src.ui.pages.clustering import page_clustering
 from src.ui.pages.dataset_info import page_dataset_info
 from src.ui.pages.dim_reduction import page_dim_reduction
@@ -25,8 +26,8 @@ from src.ui.pages.recommendation import page_recommendation
 from src.ui.pages.recommendation_evaluation import page_recommendation_evaluation
 
 st.set_page_config(
-    page_title="Spotify Recommender",
-    page_icon="🎵",
+    page_title=theme.APP_TITLE,
+    page_icon=theme.PAGE_ICON,
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -40,11 +41,11 @@ PAGES = [
 ]
 
 with st.sidebar:
-    st.title("🎵 Spotify Recommender")
+    st.title(f"{theme.PAGE_ICON} {theme.APP_TITLE}")
     st.markdown("---")
     page = st.radio("Navigate", PAGES, label_visibility="collapsed", key="sidebar_nav")
     st.markdown("---")
-    st.caption("CS Project — KNN · K-Means · GMM · PCA · AE")
+    st.caption(theme.SIDEBAR_CAPTION)
 
 if page == PAGES[0]:
     page_recommendation()

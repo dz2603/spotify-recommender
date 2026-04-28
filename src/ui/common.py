@@ -5,6 +5,9 @@ from typing import Optional
 import numpy as np
 import streamlit as st
 
+from src.algorithms.knn import knn_query
+from src.ui import theme
+
 
 SRC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPO = os.path.dirname(SRC)
@@ -56,8 +59,8 @@ def load_lookup_tables():
 def spotify_player(track_id: str, height: int = 80):
     """Embed a Spotify player for a given track ID."""
     iframe = f"""
-    <div style="margin-bottom:12px;">
-      <div style="border-radius:12px; overflow:hidden; background:#0e1117; line-height:0; box-shadow: inset 0 0 0 1px #0e1117;">
+    <div style="margin-bottom:{theme.SPOTIFY_EMBED_MARGIN_BOTTOM};">
+      <div style="border-radius:{theme.SPOTIFY_EMBED_RADIUS}; overflow:hidden; background:{theme.BACKGROUND}; line-height:0; box-shadow: inset 0 0 0 1px {theme.BACKGROUND};">
         <iframe
           src="https://open.spotify.com/embed/track/{track_id}?theme=0"
           width="100%"
@@ -65,7 +68,7 @@ def spotify_player(track_id: str, height: int = 80):
           frameborder="0"
           allowtransparency="true"
           allow="encrypted-media"
-          style="display:block; border:none; margin:0; background:#121212;"
+          style="display:block; border:none; margin:0; background:{theme.SPOTIFY_EMBED_BG};"
         ></iframe>
       </div>
     </div>
@@ -94,6 +97,48 @@ def explain_recommendation_features(
         for i in top_idx
     ]
     return summary, details
+
+
+def resolve_song_query(data, query: str, selectbox_label: str = "Multiple matches — pick one:"):
+    """
+    Resolve a text query to a selected dataset row index.
+
+    Returns None if no matching song exists. When multiple songs match, the most
+    popular 20 matches are shown in a Streamlit selectbox.
+    """
+    name_col = data["track_name"].str.lower()
+    idxs = name_col[name_col.str.contains(query.lower(), na=False)].index.tolist()
+
+    if not idxs:
+        return None
+
+    if len(idxs) == 1:
+        return idxs[0]
+
+    idxs_sorted = sorted(idxs[:20], key=lambda i: data.iloc[i]["popularity"], reverse=True)
+    opts = [f"{data.iloc[i]['track_name']} — {data.iloc[i]['artists']}" for i in idxs_sorted]
+    chosen = st.selectbox(selectbox_label, opts)
+    return idxs_sorted[opts.index(chosen)]
+
+
+def get_recommendation_results(
+    data,
+    X_num: np.ndarray,
+    query_idx: int,
+    k: int,
+    metric: str,
+    neighbor_lookup: dict | None,
+    tables_ok: bool,
+):
+    """
+    Return recommendation result dicts with `index` and `score`.
+
+    Uses live KNN for interactive consistency. This guarantees K=15 extends the
+    same ranking used for K=10 instead of switching between precomputed and live
+    feature spaces.
+    """
+    with st.spinner("Computing neighbors..."):
+        return knn_query(X_num, query_idx, k=k, metric=metric)
 
 
 def profile_clusters(X_num: np.ndarray, labels: np.ndarray, feat_cols: list[str]) -> dict:

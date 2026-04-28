@@ -94,3 +94,23 @@ def explain_recommendation_features(
         for i in top_idx
     ]
     return summary, details
+
+
+def profile_clusters(X_num: np.ndarray, labels: np.ndarray, feat_cols: list[str]) -> dict:
+    """Generate short human-readable summary labels for clusters."""
+    profiles = {}
+    for c in np.unique(labels):
+        mask = labels == c
+        if not np.any(mask):
+            profiles[c] = f"Cluster {c} (empty)"
+            continue
+        centroid = X_num[mask].mean(axis=0)
+        top_idx = np.argsort(np.abs(centroid))[::-1]
+        desc = []
+        for idx in top_idx[:2]:
+            val = centroid[idx]
+            feat_name = feat_cols[idx]
+            direction = "High" if val > 0 else "Low"
+            desc.append(f"{direction} {feat_name.capitalize()}")
+        profiles[c] = f"C{c} ({', '.join(desc)})"
+    return profiles

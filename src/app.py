@@ -3,36 +3,27 @@ Spotify Recommender — Streamlit App
 
 Five pages (see PAGES in the sidebar router):
   1. 🎵 Song Recommendation — KNN recommendations (cosine / euclidean)
-  2. 📊 Clustering — K-Means vs GMM, metrics and plots
-  3. 🔍 Dimensionality Reduction — PCA vs autoencoder embeddings
-  4. 🧪 Recommendation Evaluation — sanity metrics across songs/settings
+  2. ✏️ Recommendation Evaluation — sanity metrics across songs/settings
+  3. 📊 Clustering — K-Means vs GMM, metrics and plots
+  4. 🔍 Dimensionality Reduction — PCA vs autoencoder embeddings
   5. 🗂️ Dataset Info — table shape, column summary, sample rows
 """
-import sys
 import os
-import json
-from typing import Optional
+import sys
 
-# ---------------------------------------------------------------------------
-# Path setup — make sure sibling packages are importable
-# ---------------------------------------------------------------------------
+import streamlit as st
+
 SRC = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(SRC)
-DATA_DIR = os.path.join(REPO, "data")
-RESULTS_DIR = os.path.join(REPO, "results", "sample_recommendations")
-
 if REPO not in sys.path:
     sys.path.insert(0, REPO)
 
-import numpy as np
-import pandas as pd
-import streamlit as st
-from src.ui.common import load_data, load_lookup_tables, spotify_player
+from src.ui.pages.clustering import page_clustering
+from src.ui.pages.dataset_info import page_dataset_info
+from src.ui.pages.dim_reduction import page_dim_reduction
 from src.ui.pages.recommendation import page_recommendation
+from src.ui.pages.recommendation_evaluation import page_recommendation_evaluation
 
-# ---------------------------------------------------------------------------
-# Page config
-# ---------------------------------------------------------------------------
 st.set_page_config(
     page_title="Spotify Recommender",
     page_icon="🎵",
@@ -40,9 +31,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ---------------------------------------------------------------------------
-# Sidebar navigation
-# ---------------------------------------------------------------------------
 PAGES = [
     "🎵 Song Recommendation",
     "✏️ Recommendation Evaluation",
@@ -54,10 +42,81 @@ PAGES = [
 with st.sidebar:
     st.title("🎵 Spotify Recommender")
     st.markdown("---")
-    page = st.radio("Navigate", PAGES, label_visibility="collapsed")
+    page = st.radio("Navigate", PAGES, label_visibility="collapsed", key="sidebar_nav")
     st.markdown("---")
     st.caption("CS Project — KNN · K-Means · GMM · PCA · AE")
 
+if page == PAGES[0]:
+    page_recommendation()
+elif page == PAGES[1]:
+    page_recommendation_evaluation()
+elif page == PAGES[2]:
+    page_clustering()
+elif page == PAGES[3]:
+    page_dim_reduction()
+elif page == PAGES[4]:
+    page_dataset_info()
+"""
+Spotify Recommender — Streamlit App
+
+Five pages (see PAGES in the sidebar router):
+  1. 🎵 Song Recommendation — KNN recommendations (cosine / euclidean)
+  2. 📊 Clustering — K-Means vs GMM, metrics and plots
+  3. 🔍 Dimensionality Reduction — PCA vs autoencoder embeddings
+  4. 🧪 Recommendation Evaluation — sanity metrics across songs/settings
+  5. 🗂️ Dataset Info — table shape, column summary, sample rows
+"""
+import os
+<<<<<<< HEAD
+import json
+from typing import Optional
+=======
+import sys
+
+import streamlit as st
+>>>>>>> 2527d64 (Refactoring pt 2; extract all pages into individual files, change app.py to be a slim router)
+
+# Path setup — make sure sibling packages are importable
+SRC = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.dirname(SRC)
+<<<<<<< HEAD
+DATA_DIR = os.path.join(REPO, "data")
+RESULTS_DIR = os.path.join(REPO, "results", "sample_recommendations")
+
+=======
+>>>>>>> 2527d64 (Refactoring pt 2; extract all pages into individual files, change app.py to be a slim router)
+if REPO not in sys.path:
+    sys.path.insert(0, REPO)
+
+from src.ui.pages.clustering import page_clustering
+from src.ui.pages.dataset_info import page_dataset_info
+from src.ui.pages.dim_reduction import page_dim_reduction
+from src.ui.pages.recommendation import page_recommendation
+from src.ui.pages.recommendation_evaluation import page_recommendation_evaluation
+
+st.set_page_config(
+    page_title="Spotify Recommender",
+    page_icon="🎵",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+PAGES = [
+    "🎵 Song Recommendation",
+    "✏️ Recommendation Evaluation",
+    "📊 Clustering",
+    "🔍 Dimensionality Reduction",
+    "🗂️ Dataset Info",
+]
+
+with st.sidebar:
+    st.title("🎵 Spotify Recommender")
+    st.markdown("---")
+    page = st.radio("Navigate", PAGES, label_visibility="collapsed", key="sidebar_nav")
+    st.markdown("---")
+    st.caption("CS Project — KNN · K-Means · GMM · PCA · AE")
+
+<<<<<<< HEAD
 # ---------------------------------------------------------------------------
 # Data loading helpers (cached)
 # ---------------------------------------------------------------------------
@@ -819,6 +878,8 @@ def page_recommendation_evaluation():
 # ============================================================
 # Router
 # ============================================================
+=======
+>>>>>>> 2527d64 (Refactoring pt 2; extract all pages into individual files, change app.py to be a slim router)
 if page == PAGES[0]:
     page_recommendation()
 elif page == PAGES[1]:

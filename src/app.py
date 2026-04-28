@@ -10,6 +10,8 @@ Five pages (see PAGES in the sidebar router):
 """
 import sys
 import os
+import json
+from typing import Optional
 
 # ---------------------------------------------------------------------------
 # Path setup — make sure sibling packages are importable
@@ -22,11 +24,11 @@ RESULTS_DIR = os.path.join(REPO, "results", "sample_recommendations")
 if REPO not in sys.path:
     sys.path.insert(0, REPO)
 
-import json
 import numpy as np
 import pandas as pd
 import streamlit as st
-from typing import Optional
+from src.ui.common import load_data, load_lookup_tables, spotify_player
+from src.ui.pages.recommendation import page_recommendation
 
 # ---------------------------------------------------------------------------
 # Page config

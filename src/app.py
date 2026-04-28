@@ -73,11 +73,10 @@ def load_data(sample_n: Optional[int] = None, random_state: int = 42):
         genre_weight=1.5,
         artist_weight=1.25,
     )
-    # Dense numeric-only matrix for clustering / PCA / AE
+    # X_num is already StandardScaler-normalized inside build_weighted_feature_matrix
     num_features = pipeline["num_features"]
     from sklearn.preprocessing import StandardScaler
-    scaler = StandardScaler()
-    X_num = scaler.fit_transform(data[num_features])
+    X_num = pipeline["scaler"].transform(data[num_features])
 
     if sample_n and sample_n < len(data):
         rng = np.random.default_rng(random_state)
@@ -384,7 +383,7 @@ def page_clustering():
 def page_dim_reduction():
     st.header("🔍 Dimensionality Reduction: PCA vs Autoencoder")
     st.markdown(
-        "Both methods compress high-dimensional song vectors to **2D** for visualization. "
+        "Both methods compress high-dimensional song vectors to **2D or 3D** for visualization. "
         "PCA is linear; the Autoencoder can capture non-linear structure."
     )
 
@@ -504,17 +503,6 @@ def page_dim_reduction():
                 st.plotly_chart(loss_curve(ae_loss_hist), use_container_width=True)
             with c4:
                 st.metric("Final Reconstruction Loss", f"{ae_res['final_loss']:.6f}")
-                st.markdown(
-
-"""
-**Architecture:**
-```
-Encoder: d → 128 → 64 → 2
-Decoder: 2 → 64 → 128 → d
-Loss:    MSE
-```
-"""
-                )
 
         # ── Analytical Insight ────────────────────────────────────────────
         st.markdown("---")

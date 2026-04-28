@@ -122,6 +122,36 @@ def spotify_player(track_id: str, height: int = 80):
     st.markdown(iframe, unsafe_allow_html=True)
 
 
+def _pretty_feature_name(name: str) -> str:
+    """Convert raw feature names into UI-friendly labels."""
+    return name.replace("_", " ").title()
+
+
+def explain_recommendation_features(
+    ref_vec: np.ndarray, cand_vec: np.ndarray, feat_cols: list[str], top_n: int = 3
+) -> tuple[str, list[dict]]:
+    """
+    Return a short textual explanation and detailed per-feature match rows.
+
+    Uses absolute standardized-distance between reference and candidate vectors.
+    Smaller delta means stronger local match on that feature.
+    """
+    deltas = np.abs(cand_vec - ref_vec)
+    top_idx = np.argsort(deltas)[:top_n]
+
+    summary = ", ".join([_pretty_feature_name(feat_cols[i]) for i in top_idx])
+    details = [
+        {
+            "Feature": _pretty_feature_name(feat_cols[i]),
+            "Reference (z-score)": float(ref_vec[i]),
+            "Recommended (z-score)": float(cand_vec[i]),
+            "Abs Delta": float(deltas[i]),
+        }
+        for i in top_idx
+    ]
+    return summary, details
+
+
 # ============================================================
 # PAGE 1: Song Recommendation
 # ============================================================
@@ -190,16 +220,49 @@ def page_recommendation():
             results = knn_query(X_num, query_idx, k=k, metric=metric)
     
     rows = []
+    explanation_details = []
     score_col = "Similarity Score" if metric == "cosine" else "Distance"
+    ref_vec = X_num[query_idx]
     for rank, r in enumerate(results, 1):
         row = data.iloc[r["index"]]
+        cand_vec = X_num[r["index"]]
+        why_summary, why_details = explain_recommendation_features(
+            ref_vec, cand_vec, feat_cols, top_n=3
+        )
+        explanation_details.append(
+            {
+                "rank": rank,
+                "track": row["track_name"],
+                "artists": row["artists"],
+                "details": why_details,
+            }
+        )
         rows.append({
             "Rank": rank,
             "Track": row["track_name"],
             "Artist(s)": row["artists"],
             score_col: f"{r['score']:.4f}",
+            "Why recommended": f"Similar {why_summary}",
         })
     st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+    with st.expander("🔎 Why these songs were recommended"):
+        st.caption(
+            "Top matching features are based on smallest absolute difference in "
+            "standardized audio-feature values (z-scores)."
+        )
+        for item in explanation_details:
+            artists_text = (
+                ", ".join(item["artists"])
+                if isinstance(item["artists"], list)
+                else str(item["artists"])
+            )
+            st.markdown(f"**#{item['rank']} {item['track']}** — {artists_text}")
+            st.dataframe(
+                pd.DataFrame(item["details"]).round(3),
+                hide_index=True,
+                use_container_width=True,
+            )
 
     # --- Direct Player Section ---
     st.markdown("### ⏯️ Listen to Recommendations")

@@ -1,6 +1,6 @@
 import pandas as pd
 import streamlit as st
-
+from src.ui.pages.metric_comparison import render_metric_comparison
 from src.evaluation.recommender_metrics import evaluate_recommendations
 from src.ui.common import (
     get_recommendation_results,
@@ -130,4 +130,18 @@ def page_recommendation_evaluation():
             - **Popularity Gap**: Lower means the recommendations have similar popularity to the reference song.
             - **Diversity Score**: Higher means the recommended songs are more diverse in standardized audio-feature space.
             """
+        )
+    divider()
+
+    if st.toggle("📊 Compare cosine, euclidean, and random baseline"):
+        render_metric_comparison(
+            data=data,
+            X_num=X_num,
+            X_weighted=X_weighted,
+            query_idx=query_idx,
+            k=k,
+            neighbor_lookup=neighbor_lookup,
+            tables_ok=tables_ok,
+            ref_row=ref_row,
+            feat_cols=feat_cols,
         )

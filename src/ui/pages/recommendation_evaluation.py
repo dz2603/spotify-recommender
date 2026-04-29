@@ -8,7 +8,13 @@ from src.ui.common import (
     load_lookup_tables,
     resolve_song_query,
 )
-from src.ui.components import divider, page_header, render_metric_cards, render_reference_track
+from src.ui.components import (
+    control_panel,
+    divider,
+    page_header,
+    render_metric_cards,
+    render_reference_track,
+)
 
 
 def page_recommendation_evaluation():
@@ -24,21 +30,34 @@ def page_recommendation_evaluation():
 
     _, neighbor_lookup, tables_ok = load_lookup_tables()
 
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        query = st.text_input(
-            "Search for a reference song to evaluate",
-            placeholder="e.g. Gangnam Style, Shape of You, Blinding Lights",
-        )
-    with col2:
-        k = st.slider("Number of recommendations (K)", 5, 20, 10)
-
-    metric = st.radio(
-        "Similarity metric",
-        ["cosine", "euclidean"],
-        horizontal=True,
-        help="Cosine: angle-based similarity. Euclidean: straight-line distance.",
-    )
+    with control_panel(
+        "Evaluate Recommendation Behavior",
+        "Use the same recommendation engine as the main page, then summarize the returned songs.",
+    ):
+        search_col, k_col, metric_col = st.columns([3, 1.45, 1.35])
+        with search_col:
+            query = st.text_input(
+                "Reference song",
+                placeholder="e.g. Gangnam Style, Shape of You, Blinding Lights",
+                key="evaluation_query",
+            )
+        with k_col:
+            k = st.slider(
+                "Recommendations",
+                5,
+                20,
+                10,
+                key="evaluation_k",
+                help="K > 10 may build the larger cluster-aware matrix on first run.",
+            )
+        with metric_col:
+            metric = st.radio(
+                "Metric",
+                ["cosine", "euclidean"],
+                horizontal=True,
+                key="evaluation_metric",
+                help="Cosine uses cluster-aware weighted features. Euclidean uses numeric audio features.",
+            )
 
     divider()
 

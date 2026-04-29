@@ -3,6 +3,8 @@ KNN from scratch — pure numpy implementation.
 No sklearn neighbors used; only numpy for all similarity/distance computation.
 """
 import json
+from typing import List, Dict
+
 import numpy as np
 import os
 from scipy import sparse
@@ -48,7 +50,7 @@ def knn_query(
     query_idx: int,
     k: int = 10,
     metric: str = "cosine",
-) -> list[dict]:
+) -> List[Dict]:
     """
     Return the top-k nearest neighbors for a given song index.
 

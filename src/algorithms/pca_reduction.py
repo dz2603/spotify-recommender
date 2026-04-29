@@ -1,11 +1,13 @@
 """
 PCA dimensionality reduction using sklearn.
 """
+from typing import List, Dict
+
 import numpy as np
 from sklearn.decomposition import PCA
 
 
-def fit_pca(X: np.ndarray, n_components: int = 2, feature_names: list[str] = None) -> dict:
+def fit_pca(X: np.ndarray, n_components: int = 2, feature_names: List[str] = None) -> dict:
     """
     Fit PCA and return 2D (or n_components-D) embeddings.
 
@@ -34,7 +36,7 @@ def fit_pca(X: np.ndarray, n_components: int = 2, feature_names: list[str] = Non
     }
 
 
-def pca_variance_sweep(X: np.ndarray, max_components: int = 20, feature_names: list[str] = None) -> dict:
+def pca_variance_sweep(X: np.ndarray, max_components: int = 20, feature_names: List[str] = None) -> dict:
     """Compute explained variance ratio for 1..max_components to help choose n_components."""
     n_max = min(max_components, X.shape[1], X.shape[0])
     pca = PCA(n_components=n_max, random_state=42)

@@ -1,6 +1,8 @@
 """
 Plotly-based visualization functions for the Spotify Recommender App.
 """
+from typing import List, Optional
+
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
@@ -13,7 +15,7 @@ PALETTE = px.colors.qualitative.Bold
 def scatter_2d(
     X_2d: np.ndarray,
     labels: np.ndarray,
-    hover_texts: list[str] = None,
+    hover_texts: List[str] = None,
     title: str = "2D Scatter",
     x_label: str = "Component 1",
     y_label: str = "Component 2",
@@ -48,9 +50,9 @@ def scatter_2d(
 def scatter_3d(
     X_3d: np.ndarray,
     labels: np.ndarray,
-    hover_texts: list[str] = None,
+    hover_texts: List[str] = None,
     title: str = "3D Scatter",
-    axis_labels: list[str] = None,
+    axis_labels: List[str] = None,
     cluster_names: dict = None,
 ) -> go.Figure:
     """Color-coded 3D scatter plot for cluster visualization."""
@@ -90,7 +92,7 @@ def comparison_scatter(
     X_pca: np.ndarray,
     X_ae: np.ndarray,
     labels: np.ndarray,
-    hover_texts: list[str] = None,
+    hover_texts: List[str] = None,
     pca_x_label: str = "PC1",
     pca_y_label: str = "PC2",
 ) -> go.Figure:
@@ -127,7 +129,7 @@ def comparison_scatter(
     return fig
 
 
-def elbow_curve(k_values: list[int], inertia_values: list[float]) -> go.Figure:
+def elbow_curve(k_values: List[int], inertia_values: List[float]) -> go.Figure:
     """K-Means elbow curve."""
     fig = go.Figure(go.Scatter(
         x=k_values, y=inertia_values,
@@ -145,7 +147,7 @@ def elbow_curve(k_values: list[int], inertia_values: list[float]) -> go.Figure:
     return fig
 
 
-def bic_curve(k_values: list[int], bic_values: list[float]) -> go.Figure:
+def bic_curve(k_values: List[int], bic_values: List[float]) -> go.Figure:
     """GMM BIC score vs K curve."""
     fig = go.Figure(go.Scatter(
         x=k_values, y=bic_values,
@@ -163,7 +165,7 @@ def bic_curve(k_values: list[int], bic_values: list[float]) -> go.Figure:
     return fig
 
 
-def explained_variance_bar(ratios: np.ndarray, cumulative: np.ndarray, labels: list[str] = None) -> go.Figure:
+def explained_variance_bar(ratios: np.ndarray, cumulative: np.ndarray, labels: List[str] = None) -> go.Figure:
     """PCA explained variance bar chart with cumulative line."""
     n = len(ratios)
     if labels is not None and len(labels) == n:
@@ -193,7 +195,7 @@ def explained_variance_bar(ratios: np.ndarray, cumulative: np.ndarray, labels: l
     return fig
 
 
-def loss_curve(loss_history: list[float]) -> go.Figure:
+def loss_curve(loss_history: List[float]) -> go.Figure:
     """Autoencoder training loss curve."""
     fig = go.Figure(go.Scatter(
         y=loss_history, x=list(range(1, len(loss_history) + 1)),
@@ -211,7 +213,7 @@ def loss_curve(loss_history: list[float]) -> go.Figure:
     return fig
 
 
-def soft_membership_heatmap(proba: np.ndarray, track_names: list[str], cluster_names: dict = None) -> go.Figure:
+def soft_membership_heatmap(proba: np.ndarray, track_names: List[str], cluster_names: dict = None) -> go.Figure:
     """GMM soft membership heatmap for a sample of songs."""
     k = proba.shape[1]
     fig = go.Figure(go.Heatmap(

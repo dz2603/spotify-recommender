@@ -2,6 +2,7 @@
 
 from collections.abc import Iterable
 from contextlib import contextmanager
+from typing import Optional, Tuple
 
 import streamlit as st
 
@@ -9,7 +10,7 @@ from src.ui import theme
 from src.ui.common import spotify_player
 
 
-def page_header(title: str, description: str | None = None):
+def page_header(title: str, description: Optional[str] = None):
     st.header(title)
     if description:
         st.markdown(description)
@@ -20,7 +21,7 @@ def divider():
 
 
 @contextmanager
-def control_panel(title: str, description: str | None = None):
+def control_panel(title: str, description: Optional[str] = None):
     """Group page controls in a consistent bordered panel."""
     st.markdown(f"#### {title}")
     with st.container(border=True):
@@ -33,7 +34,7 @@ def info_note(body: str):
     st.info(body)
 
 
-def render_metric_cards(metrics: Iterable[tuple[str, str]]):
+def render_metric_cards(metrics: Iterable[Tuple[str, str]]):
     metrics = list(metrics)
     cols = st.columns(len(metrics))
     for col, (label, value) in zip(cols, metrics):

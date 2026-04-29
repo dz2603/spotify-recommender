@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Optional
+from typing import Optional, List, Tuple, Dict
 
 import numpy as np
 import streamlit as st
@@ -130,8 +130,8 @@ def _pretty_feature_name(name: str) -> str:
 
 
 def explain_recommendation_features(
-    ref_vec: np.ndarray, cand_vec: np.ndarray, feat_cols: list[str], top_n: int = 3
-) -> tuple[str, list[dict]]:
+    ref_vec: np.ndarray, cand_vec: np.ndarray, feat_cols: List[str], top_n: int = 3
+) -> Tuple[str, List[dict]]:
     """Return short textual reason and detailed top-matching features."""
     deltas = np.abs(cand_vec - ref_vec)
     top_idx = np.argsort(deltas)[:top_n]
@@ -177,7 +177,7 @@ def get_recommendation_results(
     query_idx: int,
     k: int,
     metric: str,
-    neighbor_lookup: dict | None,
+    neighbor_lookup: Optional[Dict],
     tables_ok: bool,
 ):
     """
@@ -216,7 +216,7 @@ def get_recommendation_results(
         return knn_query(X_query, query_idx, k=k, metric=metric)
 
 
-def profile_clusters(X_num: np.ndarray, labels: np.ndarray, feat_cols: list[str]) -> dict:
+def profile_clusters(X_num: np.ndarray, labels: np.ndarray, feat_cols: List[str]) -> dict:
     """Generate short human-readable summary labels for clusters."""
     profiles = {}
     for c in np.unique(labels):

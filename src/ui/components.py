@@ -1,6 +1,7 @@
 """Reusable Streamlit UI components."""
 
 from collections.abc import Iterable
+from contextlib import contextmanager
 
 import streamlit as st
 
@@ -16,6 +17,16 @@ def page_header(title: str, description: str | None = None):
 
 def divider():
     st.markdown("---")
+
+
+@contextmanager
+def control_panel(title: str, description: str | None = None):
+    """Group page controls in a consistent bordered panel."""
+    st.markdown(f"#### {title}")
+    with st.container(border=True):
+        if description:
+            st.caption(description)
+        yield
 
 
 def info_note(body: str):

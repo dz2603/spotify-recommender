@@ -8,7 +8,13 @@ from src.ui.common import (
     load_lookup_tables,
     resolve_song_query,
 )
-from src.ui.components import divider, page_header, render_reference_track, render_spotify_grid
+from src.ui.components import (
+    control_panel,
+    divider,
+    page_header,
+    render_reference_track,
+    render_spotify_grid,
+)
 
 
 def page_recommendation():
@@ -20,21 +26,37 @@ def page_recommendation():
 
     _, neighbor_lookup, tables_ok = load_lookup_tables()
 
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        query = st.text_input("Search for a song", placeholder="e.g. Gangnam Style")
-    with col2:
-        k = st.slider("Number of recommendations (K)", 5, 20, 10)
+    with control_panel(
+        "Find Similar Songs",
+        "Choose a reference track and tune how many neighbors to return.",
+    ):
+        search_col, k_col, metric_col = st.columns([3, 1.45, 1.35])
+        with search_col:
+            query = st.text_input(
+                "Search for a song",
+                placeholder="e.g. Gangnam Style",
+                key="recommendation_query",
+            )
+        with k_col:
+            k = st.slider(
+                "Recommendations",
+                5,
+                20,
+                10,
+                key="recommendation_k",
+                help="K > 10 may build the larger cluster-aware matrix on first run.",
+            )
+        with metric_col:
+            metric = st.radio(
+                "Metric",
+                ["cosine", "euclidean"],
+                horizontal=True,
+                key="recommendation_metric",
+                help="Cosine uses cluster-aware weighted features. Euclidean uses numeric audio features.",
+            )
         st.caption(
-            "K > 10 may build the larger cluster-aware recommendation matrix on first run."
+            "Cosine uses the fast precomputed lookup for K ≤ 10, then live cluster-aware KNN for larger K."
         )
-
-    metric = st.radio(
-        "Similarity metric",
-        ["cosine", "euclidean"],
-        horizontal=True,
-        help="Cosine: angle-based (ignores magnitude). Euclidean: straight-line distance.",
-    )
 
     divider()
 
